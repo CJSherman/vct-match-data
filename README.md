@@ -14,20 +14,20 @@ To create a new tournament you provide a list of maps that the tournament is pla
 You can view a print out or plotted data from the database.
 Data comes in 4 forms:
  * Maps
-  * Pickrate
-  * Sidedness
+   * Pickrate
+   * Sidedness
  * Comps
-  * Pickrate
-  * Winrate
-  * Rating
+   * Pickrate
+   * Winrate
+   * Rating
  * Agents
-  * Pickrate
-  * Winrate
-  * Rating
+   * Pickrate
+   * Winrate
+   * Rating
  * Teams
-  * Pickrate
-  * Winrate
-  * Rating
+   * Pickrate
+   * Winrate
+   * Rating
 
 ## Update data
 Deletes all data from maps, comps, agents and teams tables.
