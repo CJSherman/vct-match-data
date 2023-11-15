@@ -281,9 +281,9 @@ def data_add(tournament: Tournament, session: session.Session):
 
 
 # loops options until not needed
-def game_loop():
+def game_loop(database: str):
     while True:
-        engine = create_engine("sqlite:///VCT.db", echo=True)
+        engine = create_engine("sqlite:///{}.db".format(database), echo=True)
         Session = sessionmaker(bind=engine)
         session = Session()
 

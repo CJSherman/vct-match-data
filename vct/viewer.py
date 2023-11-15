@@ -291,6 +291,7 @@ def plot_maps(Tournaments: list, Maps: list, session: session.Session):
             plt.ylabel(label)
             plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
             plt.xticks(rotation="vertical")
+            plt.tight_layout()
             plt.show()
 
     elif dependent == "b":  # x=Maps
@@ -312,6 +313,7 @@ def plot_maps(Tournaments: list, Maps: list, session: session.Session):
             plt.ylabel(label)
             plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
             plt.xticks(rotation="vertical")
+            plt.tight_layout()
             plt.show()
 
 
@@ -348,13 +350,14 @@ def plot_comps(Tournaments: list, Maps: list, session: session.Session):
                     label = "Winrate"
                 elif independent == "c":  # y=Rating
                     y = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
-                    label = "Winrate"
+                    label = "Rating"
 
                 plt.figure()
                 plt.title("{} {}".format(map_, comp_))
                 plt.ylabel(label)
                 plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
                 plt.xticks(rotation="vertical")
+                plt.tight_layout()
                 plt.show()
 
     elif dependent == "b":  # x=Maps
@@ -371,8 +374,6 @@ def plot_comps(Tournaments: list, Maps: list, session: session.Session):
                 if len(x) < 3:
                     continue
 
-                plt.figure()
-                plt.title("{} {}".format(tournament_, comp_))
                 if independent == "a":  # y=Pickrate
                     y = [divide(comp.games, 2*comp.map_ref.games) for comp in comps]
                     label = "Pickrate"
@@ -381,13 +382,14 @@ def plot_comps(Tournaments: list, Maps: list, session: session.Session):
                     label = "Winrate"
                 elif independent == "c":  # y=Rating
                     y = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
-                    label = "Winrate"
+                    label = "Rating"
 
                 plt.figure()
                 plt.title("{} {}".format(tournament_, comp_))
                 plt.ylabel(label)
                 plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
                 plt.xticks(rotation="vertical")
+                plt.tight_layout()
                 plt.show()
 
     elif dependent == "c":  # x=Comps
@@ -407,13 +409,14 @@ def plot_comps(Tournaments: list, Maps: list, session: session.Session):
                     label = "Winrate"
                 elif independent == "c":  # y=Rating
                     y = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
-                    label = "Winrate"
+                    label = "Rating"
 
                 plt.figure()
                 plt.title("{} {}".format(tournament_, map_))
                 plt.ylabel(label)
                 plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
                 plt.xticks(rotation="vertical")
+                plt.tight_layout()
                 plt.show()
 
 
@@ -446,13 +449,14 @@ def plot_agents(Tournaments: list, Maps: list, Agents: list, session: session.Se
                     label = "Winrate"
                 elif independent == "c":  # y=Rating
                     y = [100 * divide(agent.wins, agent.map_ref.games) for agent in agents]
-                    label = "Winrate"
+                    label = "Rating"
 
                 plt.figure()
                 plt.title("{} {}".format(map_, agent_))
                 plt.ylabel(label)
                 plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
                 plt.xticks(rotation="vertical")
+                plt.tight_layout()
                 plt.show()
 
     elif dependent == "b":  # x=Maps
@@ -472,13 +476,14 @@ def plot_agents(Tournaments: list, Maps: list, Agents: list, session: session.Se
                     label = "Winrate"
                 elif independent == "c":  # y=Rating
                     y = [100 * divide(agent.wins, agent.map_ref.games) for agent in agents]
-                    label = "Winrate"
+                    label = "Rating"
 
                 plt.figure()
                 plt.title("{} {}".format(tournament_, agent_))
                 plt.ylabel(label)
                 plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
                 plt.xticks(rotation="vertical")
+                plt.tight_layout()
                 plt.show()
 
     elif dependent == "c":  # x=Agents
@@ -498,13 +503,14 @@ def plot_agents(Tournaments: list, Maps: list, Agents: list, session: session.Se
                     label = "Winrate"
                 elif independent == "c":  # y=Rating
                     y = [100 * divide(agent.wins, agent.map_ref.games) for agent in agents]
-                    label = "Winrate"
+                    label = "Rating"
 
                 plt.figure()
                 plt.title("{} {}".format(tournament_, map_))
                 plt.ylabel(label)
                 plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
                 plt.xticks(rotation="vertical")
+                plt.tight_layout()
                 plt.show()
 
 
@@ -537,13 +543,14 @@ def plot_teams(Tournaments: list, Maps: list, Teams: list, session: session.Sess
                     label = "Winrate"
                 elif independent == "c":  # y=Rating
                     y = [100 * divide(team.wins, team.map_ref.games) for team in teams]
-                    label = "Winrate"
+                    label = "Rating"
 
                 plt.figure()
                 plt.title("{} {}".format(map_, team_))
                 plt.ylabel(label)
                 plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
                 plt.xticks(rotation="vertical")
+                plt.tight_layout()
                 plt.show()
 
     elif dependent == "b":  # x=Maps
@@ -563,13 +570,14 @@ def plot_teams(Tournaments: list, Maps: list, Teams: list, session: session.Sess
                     label = "Winrate"
                 elif independent == "c":  # y=Rating
                     y = [100 * divide(team.wins, team.map_ref.games) for team in teams]
-                    label = "Winrate"
+                    label = "Rating"
 
                 plt.figure()
                 plt.title("{} {}".format(tournament_, team_))
                 plt.ylabel(label)
                 plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
                 plt.xticks(rotation="vertical")
+                plt.tight_layout()
                 plt.show()
 
     elif dependent == "c":  # x=teams
@@ -589,13 +597,14 @@ def plot_teams(Tournaments: list, Maps: list, Teams: list, session: session.Sess
                     label = "Winrate"
                 elif independent == "c":  # y=Rating
                     y = [100 * divide(team.wins, team.map_ref.games) for team in teams]
-                    label = "Winrate"
+                    label = "Rating"
 
                 plt.figure()
                 plt.title("{} {}".format(tournament_, map_))
                 plt.ylabel(label)
                 plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
                 plt.xticks(rotation="vertical")
+                plt.tight_layout()
                 plt.show()
 
 
