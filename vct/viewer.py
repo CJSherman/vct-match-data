@@ -262,7 +262,8 @@ def view_teams(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
     return output
 
 
-def plot_maps(Tournaments: list, Maps: list, session: session.Session):
+def plot_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_msg: str,
+              session: session.Session):
     dependent = choice_check("Choose Dependent Variable\n" +
                              "a) Tournaments\n" +
                              "b) Maps\n",
@@ -273,48 +274,47 @@ def plot_maps(Tournaments: list, Maps: list, session: session.Session):
                                ["a", "b"])
 
     if dependent == "a":  # x=Tournaments
-        for map_ in Maps:
-            maps = session.query(Map).where(Map.map == map_).all()
-            x = [map.tournament for map in maps]
-            if len(x) <= 3:
-                continue
+        map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
+                                      np.arange(1, len(Maps)+1)))
+        maps = session.query(Map).where(Map.map == Maps[map_choice-1]).all()
+        x = [map.tournament for map in maps]
 
-            if independent == "a":  # y=Pickrate
-                y = [divide(map.games, map.tournament_ref.games) for map in maps]
-                label = "Pickrate"
-            elif independent == "b":  # y=Sidedness
-                y = [divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5) for map in maps]
-                label = "Sidedness"
+        if independent == "a":  # y=Pickrate
+            y = [divide(map.games, map.tournament_ref.games) for map in maps]
+            label = "Pickrate"
+        elif independent == "b":  # y=Sidedness
+            y = [divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5) for map in maps]
+            label = "Sidedness"
 
-            plt.figure()
-            plt.title(map_)
-            plt.ylabel(label)
-            plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
-            plt.xticks(rotation="vertical")
-            plt.tight_layout()
-            plt.show()
+        plt.figure()
+        plt.title(Maps[map_choice-1])
+        plt.ylabel(label)
+        plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
+        plt.xticks(rotation="vertical")
+        plt.tight_layout()
+        plt.show()
 
     elif dependent == "b":  # x=Maps
-        for tournament_ in Tournaments:
-            maps = session.query(Map).where(Map.tournament == tournament_).all()
-            x = [map.map for map in maps]
-            if len(x) < 3:
-                continue
+        tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
+                                             tournament_msg,
+                                             np.arange(1, len(Tournaments)+1)))
+        maps = session.query(Map).where(Map.tournament == Tournaments[tournament_choice-1]).all()
+        x = [map.map for map in maps]
 
-            if independent == "a":  # y=Pickrate
-                y = [divide(map.games, map.tournament_ref.games) for map in maps]
-                label = "Pickrate"
-            elif independent == "b":  # y=Sidedness
-                y = [divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5) for map in maps]
-                label = "Sidedness"
+        if independent == "a":  # y=Pickrate
+            y = [divide(map.games, map.tournament_ref.games) for map in maps]
+            label = "Pickrate"
+        elif independent == "b":  # y=Sidedness
+            y = [divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5) for map in maps]
+            label = "Sidedness"
 
-            plt.figure()
-            plt.title(tournament_)
-            plt.ylabel(label)
-            plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
-            plt.xticks(rotation="vertical")
-            plt.tight_layout()
-            plt.show()
+        plt.figure()
+        plt.title(Tournaments[tournament_choice-1])
+        plt.ylabel(label)
+        plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
+        plt.xticks(rotation="vertical")
+        plt.tight_layout()
+        plt.show()
 
 
 def plot_comps(Tournaments: list, Maps: list, session: session.Session):
@@ -654,7 +654,7 @@ def data_viewer(session):
 
         if plot == "y":
             if view == "a":  # map statistics
-                plot_maps(Tournaments, Maps, session)
+                plot_maps(Tournaments, tournament_msg, Maps, map_msg, session)
             elif view == "b":  # comp statistics
                 plot_comps(Tournaments, Maps, session)
             elif view == "c":  # agent statistics
