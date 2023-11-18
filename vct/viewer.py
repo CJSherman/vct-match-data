@@ -262,6 +262,27 @@ def view_teams(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
     return output
 
 
+def plotter(x: list, y: list, label: str, title: str, labels: list[str] = None, n=1):
+    sep = 2
+    x_axis = sep * np.arange(len(x))
+    width = sep / (n + 1)
+    plt.figure(figsize=(20, 10))
+    if label == "Sidedness":
+        plt.ylim(-50, 50)
+    else:
+        plt.ylim(0, 100)
+    for i in range(len(x)*n):
+        bar = plt.bar(x_axis[int(i/n)] + width * (int(i%n)-(n-1)/2), y[int(i/n)][i%n], width)
+        if labels:
+            # plt.bar_label(bar, labels=[labels[int(i/n)][i%n]], rotation="vertical") 
+            plt.text(x_axis[int(i/n)] + width * (int(i%n)-(n-1)/2), 1, labels[int(i/n)][i%n], rotation="vertical", size=10, horizontalalignment="center")
+            # TODO Fix bar labelling
+    plt.xticks(x_axis, x, rotation=15, ha="right")
+    plt.title(title)
+    plt.ylabel(label)
+    plt.tight_layout()
+    plt.show()
+
 def plot_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_msg: str,
               session: session.Session):
     dependent = choice_check("Choose Dependent Variable\n" +
@@ -277,52 +298,40 @@ def plot_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
         maps = session.query(Map).where(Map.map == Maps[map_choice-1]).all()
-        x = [map.tournament for map in maps]
-
+        
+        x=[map.tournament for map in maps]
         if independent == "a":  # y=Pickrate
-            y = [divide(map.games, map.tournament_ref.games) for map in maps]
+            y = [[100 * divide(map.games, map.tournament_ref.games)] for map in maps]
             label = "Pickrate"
         elif independent == "b":  # y=Sidedness
-            y = [divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5) for map in maps]
+            y = [[100 * divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5)] for map in maps]
             label = "Sidedness"
 
-        plt.figure()
-        plt.title(Maps[map_choice-1])
-        plt.ylabel(label)
-        plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
-        plt.xticks(rotation="vertical")
-        plt.tight_layout()
-        plt.show()
+        plotter(x, y, label, Maps[map_choice-1], n=1)
 
     elif dependent == "b":  # x=Maps
         tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
                                              tournament_msg,
                                              np.arange(1, len(Tournaments)+1)))
         maps = session.query(Map).where(Map.tournament == Tournaments[tournament_choice-1]).all()
-        x = [map.map for map in maps]
 
+        x=[map.map for map in maps]
         if independent == "a":  # y=Pickrate
-            y = [divide(map.games, map.tournament_ref.games) for map in maps]
+            y = [100 * divide(map.games, map.tournament_ref.games) for map in maps]
             label = "Pickrate"
         elif independent == "b":  # y=Sidedness
-            y = [divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5) for map in maps]
+            y = [100 * divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5) for map in maps]
             label = "Sidedness"
 
-        plt.figure()
-        plt.title(Tournaments[tournament_choice-1])
-        plt.ylabel(label)
-        plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
-        plt.xticks(rotation="vertical")
-        plt.tight_layout()
-        plt.show()
+        plotter(x, y, label, Tournaments[tournament_choice-1], n=len(x))
 
 
-def plot_comps(Tournaments: list, Maps: list, session: session.Session):
+def plot_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_msg: str, 
+               session: session.Session):
     dependent = choice_check("Choose Dependent Variable\n" +
                              "a) Tournaments\n" +
-                             "b) Maps\n" +
-                             "c) Comps\n",
-                             ["a", "b", "c"])
+                             "b) Maps\n",
+                             ["a", "b"])
     independent = choice_check("Choose Independent Variable\n" +
                                "a) Pickrate\n" +
                                "b) Winrate\n" +
@@ -330,95 +339,65 @@ def plot_comps(Tournaments: list, Maps: list, session: session.Session):
                                ["a", "b", "c"])
 
     if dependent == "a":  # x=Tournaments
-        for map_ in Maps:
-            Comps_list = ["{} {} {} {} {}".format(
-                comp.agent_1, comp.agent_2, comp.agent_3, comp.agent_4, comp.agent_5)
-                for comp in session.query(Comp).where(Comp.map == map_).all()]
-            Comps = list(set(Comps_list))
-            Comps = sorted(Comps, key=Counter(Comps_list).get, reverse=True)
-            for comp_ in Comps:
-                comps = session.query(Comp).where((Comp.map == map_) & (Comp.ref == comp_)).all()
-                x = [comp.tournament for comp in comps]
-                if len(x) < 3:
-                    continue
+        map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
+                                      np.arange(1, len(Maps)+1)))
+        tournaments = session.query(Map).where(Map.map == Maps[map_choice-1]).all()
+        labels = []
+        y = []
+        x = []
+        for tournament in tournaments:
+            if independent == "a":  # y=Pickrate
+                comps = session.query(Comp).where(Comp.map_id == tournament.id).order_by(Comp.games.desc()).all()
+                comps = comps[:3]
+                y_ = [100 * divide(comp.games, 2*comp.map_ref.games) for comp in comps]
+                label = "Pickrate"
+            elif independent == "b":  # y=Winrate
+                comps = session.query(Comp).where(Comp.map_id == tournament.id).order_by(Comp.wins.desc()).all()
+                comps = comps[:3]
+                y_ = [100 * divide(comp.wins, comp.games) for comp in comps]
+                label = "Winrate"
+            elif independent == "c":  # y=Rating
+                comps = session.query(Comp).where(Comp.map_id == tournament.id).order_by(Comp.wins.desc()).all()
+                comps = comps[:3]
+                y_ = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
+                label = "Rating"
+            if len(y_) < 3:
+                continue
+            y.append(y_)
+            labels.append([comp.ref for comp in comps])
+            x.append(tournament.tournament)
 
-                if independent == "a":  # y=Pickrate
-                    y = [divide(comp.games, 2*comp.map_ref.games) for comp in comps]
-                    label = "Pickrate"
-                elif independent == "b":  # y=Winrate
-                    y = [divide(comp.wins, comp.games) for comp in comps]
-                    label = "Winrate"
-                elif independent == "c":  # y=Rating
-                    y = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
-                    label = "Rating"
-
-                plt.figure()
-                plt.title("{} {}".format(map_, comp_))
-                plt.ylabel(label)
-                plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
-                plt.xticks(rotation="vertical")
-                plt.tight_layout()
-                plt.show()
+        plotter(x, y, label, Maps[map_choice-1], labels, n=3)
 
     elif dependent == "b":  # x=Maps
-        for tournament_ in Tournaments:
-            Comps_list = ["{} {} {} {} {}".format(
-                comp.agent_1, comp.agent_2, comp.agent_3, comp.agent_4, comp.agent_5)
-                for comp in session.query(Comp).where(Comp.tournament == tournament_).all()]
-            Comps = list(set(Comps_list))
-            Comps = sorted(Comps, key=Counter(Comps_list).get, reverse=True)
-            for comp_ in Comps:
-                comps = session.query(Comp).where(
-                    (Comp.tournament == tournament_) & (Comp.ref == comp_)).all()
-                x = [comp.map for comp in comps]
-                if len(x) < 3:
-                    continue
-
-                if independent == "a":  # y=Pickrate
-                    y = [divide(comp.games, 2*comp.map_ref.games) for comp in comps]
-                    label = "Pickrate"
-                elif independent == "b":  # y=Winrate
-                    y = [divide(comp.wins, comp.games) for comp in comps]
-                    label = "Winrate"
-                elif independent == "c":  # y=Rating
-                    y = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
-                    label = "Rating"
-
-                plt.figure()
-                plt.title("{} {}".format(tournament_, comp_))
-                plt.ylabel(label)
-                plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
-                plt.xticks(rotation="vertical")
-                plt.tight_layout()
-                plt.show()
-
-    elif dependent == "c":  # x=Comps
-        for tournament_ in Tournaments:
-            for map_ in Maps:
-                comps = session.query(Comp).where(
-                    (Comp.tournament == tournament_) & (Comp.map == map_)).all()
-                x = [comp.ref for comp in comps]
-                if len(x) < 3:
-                    continue
-
-                if independent == "a":  # y=Pickrate
-                    y = [divide(comp.games, 2*comp.map_ref.games) for comp in comps]
-                    label = "Pickrate"
-                elif independent == "b":  # y=Winrate
-                    y = [divide(comp.wins, comp.games) for comp in comps]
-                    label = "Winrate"
-                elif independent == "c":  # y=Rating
-                    y = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
-                    label = "Rating"
-
-                plt.figure()
-                plt.title("{} {}".format(tournament_, map_))
-                plt.ylabel(label)
-                plt.bar(x, y, color=mcolors.TABLEAU_COLORS)
-                plt.xticks(rotation="vertical")
-                plt.tight_layout()
-                plt.show()
-
+        tournament_choice = int(choice_check("What Map do you want to view?\n" + tournament_msg,
+                                      np.arange(1, len(Tournaments)+1)))
+        maps = session.query(Map).where(Map.tournament == Tournaments[tournament_choice-1]).all()
+        labels = []
+        y = []
+        x = []
+        for map in maps:
+            if independent == "a":  # y=Pickrate
+                comps = session.query(Comp).where(Comp.map_id == map.id).order_by(Comp.games.desc()).all()
+                comps = comps[:3]
+                y_ = [100 * divide(comp.games, 2*comp.map_ref.games) for comp in comps]
+                label = "Pickrate"
+            elif independent == "b":  # y=Winrate
+                comps = session.query(Comp).where(Comp.map_id == map.id).order_by(Comp.wins.desc()).all()
+                comps = comps[:3]
+                y_ = [100 * divide(comp.wins, comp.games) for comp in comps]
+                label = "Winrate"
+            elif independent == "c":  # y=Rating
+                comps = session.query(Comp).where(Comp.map_id == map.id).order_by(Comp.wins.desc()).all()
+                comps = comps[:3]
+                y_ = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
+                label = "Rating"
+            if len(y_) < 3:
+                continue
+            y.append(y_)
+            labels.append([comp.ref for comp in comps])
+            x.append(map.map)
+        plotter(x, y, label, Tournaments[tournament_choice-1], labels, 3)
 
 def plot_agents(Tournaments: list, Maps: list, Agents: list, session: session.Session):
     dependent = choice_check("Choose Dependent Variable\n" +
@@ -656,7 +635,7 @@ def data_viewer(session):
             if view == "a":  # map statistics
                 plot_maps(Tournaments, tournament_msg, Maps, map_msg, session)
             elif view == "b":  # comp statistics
-                plot_comps(Tournaments, Maps, session)
+                plot_comps(Tournaments, tournament_msg, Maps, map_msg, session)
             elif view == "c":  # agent statistics
                 plot_agents(Tournaments, Maps, Agents, session)
             elif view == "d":  # team statistics

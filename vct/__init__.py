@@ -3,7 +3,7 @@ import numpy as np
 from sqlalchemy.orm import sessionmaker, session
 from sqlalchemy import create_engine
 
-from .databases import Tournament, Map, Agent, Comp, Team, Match
+from .databases import Tournament, Map, Agent, Comp, Team, Match, Agent_Shorthand
 from .functions import data_check, choice_check, int_input
 from .new_game import new_game
 from .viewer import data_viewer
@@ -279,6 +279,15 @@ def data_add(tournament: Tournament, session: session.Session):
         if done == "n":
             break
 
+def add_agent(session: session.Session):
+    agent = input("Enter Agent Name: ").upper()
+    short = input("Enter Abbreviation for {}: ".format(agent)).upper()
+
+    agent_shorthand = Agent_Shorthand(name=agent,
+                                      abbreviation=short)
+    session.add(agent_shorthand)
+    session.commit()
+    session.close()
 
 # loops options until not needed
 def game_loop(database: str):
@@ -295,9 +304,17 @@ def game_loop(database: str):
 
         if task == "a":  # add new data
             while True:
-                tournament = select_tournament(session)
-                data_add(tournament, session)
-                done = choice_check("Would you like to look at another Tournament? (y/n) ",
+                match_or_agent = choice_check("What do you want to add?\n" +
+                                              "a) A new VCT match\n" +
+                                              "b) A new agent\n",
+                                              ["a", "b"])
+                if match_or_agent == "a":
+                    tournament = select_tournament(session)
+                    data_add(tournament, session)
+                elif match_or_agent == "b":
+                    add_agent()
+                
+                done = choice_check("Would you like to add something else? (y/n) ",
                                     ["y", "n"])
                 if done == "n":
                     break

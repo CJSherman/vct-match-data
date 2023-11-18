@@ -29,11 +29,11 @@ def new_game_comp(match: Match, result: int, session):
               [match.team_1_comp_id,
                match.team_1_comp_ref,
                "{} {} {} {} {}".format(
-                   match.team_1_agent_1,
-                   match.team_1_agent_2,
-                   match.team_1_agent_3,
-                   match.team_1_agent_4,
-                   match.team_1_agent_5)]]
+                   match.team_1_agent_1_ref.agent_ref.abbreviation,
+                   match.team_1_agent_2_ref.agent_ref.abbreviation,
+                   match.team_1_agent_3_ref.agent_ref.abbreviation,
+                   match.team_1_agent_4_ref.agent_ref.abbreviation,
+                   match.team_1_agent_5_ref.agent_ref.abbreviation)]]
 
     team_2 = [[match.team_2_agent_1_ref,
                match.team_2_agent_2_ref,
@@ -43,11 +43,11 @@ def new_game_comp(match: Match, result: int, session):
               [match.team_2_comp_id,
                match.team_2_comp_ref,
                "{} {} {} {} {}".format(
-                   match.team_2_agent_1,
-                   match.team_2_agent_2,
-                   match.team_2_agent_3,
-                   match.team_2_agent_4,
-                   match.team_2_agent_5)]]
+                   match.team_2_agent_1_ref.agent_ref.abbreviation,
+                   match.team_2_agent_2_ref.agent_ref.abbreviation,
+                   match.team_2_agent_3_ref.agent_ref.abbreviation,
+                   match.team_2_agent_4_ref.agent_ref.abbreviation,
+                   match.team_2_agent_5_ref.agent_ref.abbreviation)]]
 
     teams = [team_1, team_2]
 
