@@ -775,7 +775,7 @@ def plot_agents_maps(Tournaments: list, tournament_msg: str, Agents: list, agent
 def plot_agents_agents(Tournaments: list, tournament_msg: str, Maps: list, map_msg: str,
                        independent: str, session):
     """Function to retrieve plot agent data where the X-axis is agents. Y-axis can be
-    Pickrate, Winrate or Rating. Plots can be focuses around a specific map, or
+    Pickrate, Winrate or Rating. Plots can be focuses around a specific map, specific tournament or
     specific map on a specific tournament.
 
     Parameters
@@ -1168,8 +1168,8 @@ def plot_teams_maps(Tournaments: list, tournament_msg: str, Teams: list, team_ms
 def plot_teams_teams(Tournaments: list, tournament_msg: str, Maps: list, map_msg: str,
                      independent: str, session):
     """Function to retrieve plot team data where the X-axis is teams. Y-axis can be
-    Pickrate, Winrate or Rating. Plots can be focuses around a specific map, a specific map or
-    a specific map on a specific tournament.
+    Pickrate, Winrate or Rating. Plots can be focuses around a specific map, a specific tournament
+    or a specific map on a specific tournament.
 
     Parameters
     ----------
