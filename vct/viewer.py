@@ -6,7 +6,7 @@ from sqlalchemy.orm import session
 from collections import Counter
 
 from .databases import Tournament, Map, Agent, Comp, Team
-from .functions import choice_check, divide
+from .functions import choice_check, divide, int_input
 
 
 def view_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_msg: str,
@@ -317,13 +317,13 @@ def plot_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_
 
         x=[map.map for map in maps]
         if independent == "a":  # y=Pickrate
-            y = [100 * divide(map.games, map.tournament_ref.games) for map in maps]
+            y = [[100 * divide(map.games, map.tournament_ref.games)] for map in maps]
             label = "Pickrate"
         elif independent == "b":  # y=Sidedness
-            y = [100 * divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5) for map in maps]
+            y = [[100 * divide(map.ct_wins, map.ct_wins + map.t_wins, -0.5)] for map in maps]
             label = "Sidedness"
 
-        plotter(x, y, label, Tournaments[tournament_choice-1], n=len(x))
+        plotter(x, y, label, Tournaments[tournament_choice-1], n=1)
 
 
 def plot_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_msg: str, 
@@ -337,8 +337,11 @@ def plot_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
                                "b) Winrate\n" +
                                "c) Rating\n",
                                ["a", "b", "c"])
+    
+    comp_choice = int_input("How Many Comps Should Be Shown In Plots?\n" +
+                            "Note: If this number is too large no data will be shown\n")
 
-    if dependent == "a":  # x=Tournaments
+    if dependent == "a":  # x=Tournaments"
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
         tournaments = session.query(Map).where(Map.map == Maps[map_choice-1]).all()
@@ -348,26 +351,26 @@ def plot_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
         for tournament in tournaments:
             if independent == "a":  # y=Pickrate
                 comps = session.query(Comp).where(Comp.map_id == tournament.id).order_by(Comp.games.desc()).all()
-                comps = comps[:3]
+                comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.games, 2*comp.map_ref.games) for comp in comps]
                 label = "Pickrate"
             elif independent == "b":  # y=Winrate
                 comps = session.query(Comp).where(Comp.map_id == tournament.id).order_by(Comp.wins.desc()).all()
-                comps = comps[:3]
+                comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.wins, comp.games) for comp in comps]
                 label = "Winrate"
             elif independent == "c":  # y=Rating
                 comps = session.query(Comp).where(Comp.map_id == tournament.id).order_by(Comp.wins.desc()).all()
-                comps = comps[:3]
+                comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
                 label = "Rating"
-            if len(y_) < 3:
+            if len(y_) < comp_choice:
                 continue
             y.append(y_)
             labels.append([comp.ref for comp in comps])
             x.append(tournament.tournament)
 
-        plotter(x, y, label, Maps[map_choice-1], labels, n=3)
+        plotter(x, y, label, Maps[map_choice-1], labels, n=comp_choice)
 
     elif dependent == "b":  # x=Maps
         tournament_choice = int(choice_check("What Map do you want to view?\n" + tournament_msg,
@@ -379,17 +382,17 @@ def plot_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
         for map in maps:
             if independent == "a":  # y=Pickrate
                 comps = session.query(Comp).where(Comp.map_id == map.id).order_by(Comp.games.desc()).all()
-                comps = comps[:3]
+                comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.games, 2*comp.map_ref.games) for comp in comps]
                 label = "Pickrate"
             elif independent == "b":  # y=Winrate
                 comps = session.query(Comp).where(Comp.map_id == map.id).order_by(Comp.wins.desc()).all()
-                comps = comps[:3]
+                comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.wins, comp.games) for comp in comps]
                 label = "Winrate"
             elif independent == "c":  # y=Rating
                 comps = session.query(Comp).where(Comp.map_id == map.id).order_by(Comp.wins.desc()).all()
-                comps = comps[:3]
+                comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
                 label = "Rating"
             if len(y_) < 3:
@@ -397,7 +400,7 @@ def plot_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
             y.append(y_)
             labels.append([comp.ref for comp in comps])
             x.append(map.map)
-        plotter(x, y, label, Tournaments[tournament_choice-1], labels, 3)
+        plotter(x, y, label, Tournaments[tournament_choice-1], labels, comp_choice)
 
 def plot_agents(Tournaments: list, Maps: list, Agents: list, session: session.Session):
     dependent = choice_check("Choose Dependent Variable\n" +
