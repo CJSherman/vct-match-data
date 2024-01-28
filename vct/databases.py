@@ -27,13 +27,21 @@ class Map(base):
     id: Mapped[str] = mapped_column(primary_key=True)
 
 
+class Agent_Shorthand(base):
+    __tablename__ = "agent_referall"
+
+    name: Mapped[str] = mapped_column(primary_key=True)
+    abbreviation: Mapped[str] = mapped_column(unique=True)
+
+
 class Agent(base):
     __tablename__ = "agents"
 
     tournament: Mapped[str] = mapped_column(ForeignKey("tournaments.id"))
     tournament_ref: Mapped[Tournament] = relationship("Tournament")
     map: Mapped[str]
-    agent: Mapped[str]
+    agent: Mapped[str] = mapped_column(ForeignKey("agent_referall.name"))
+    agent_ref: Mapped[Agent_Shorthand] = relationship("Agent_Shorthand")
     games: Mapped[int]
     wins: Mapped[int]
 

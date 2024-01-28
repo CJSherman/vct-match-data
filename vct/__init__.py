@@ -3,7 +3,7 @@ import numpy as np
 from sqlalchemy.orm import sessionmaker, session
 from sqlalchemy import create_engine
 
-from .databases import Tournament, Map, Agent, Comp, Team, Match
+from .databases import Tournament, Map, Agent, Comp, Team, Match, Agent_Shorthand
 from .functions import data_check, choice_check, int_input
 from .new_game import new_game
 from .viewer import data_viewer
@@ -11,6 +11,13 @@ from .viewer import data_viewer
 
 # creates the initial maps, agents and teams tables
 def setup(tournament: Tournament, session: session.Session):
+    """Function to create all the required fields in the databases for a new tournament.
+
+    Parameter
+    ---------
+    tournament : Tournament
+        The database the contains base information of the tournament to be created.
+    session : session.Session"""
 
     maps = tournament.map_pool.split()
     agents = tournament.agent_pool.split()
@@ -54,6 +61,13 @@ def setup(tournament: Tournament, session: session.Session):
 
 # reloads all match data
 def data_refresh(session: session.Session):
+    """Function to clear the current processed data and re-enter the data into databases. This is
+    useful for if changes to how data is processed are made.
+
+    Parameters
+    ----------
+    session : session.Session"""
+
     # clears existing tables
     maps = session.query(Map).all()
     for map in maps:
@@ -88,6 +102,17 @@ def data_refresh(session: session.Session):
 
 # creates a new entry in the tournaments table and accompaning records for maps, agents and teams
 def new_tournament(session: session.Session) -> str:
+    """Function to take the input of the base information for a new tournament.
+
+    Parameters
+    ----------
+    session : session.Session
+
+    Returns
+    -------
+    str
+        The name of the created tournament."""
+
     while True:
         tournament_name = input("Enter the Tournament Name: ")
         confirm = choice_check("Confirm This is the Tournament Name: " +
@@ -131,6 +156,17 @@ def new_tournament(session: session.Session) -> str:
 
 # selects the tournament for which to add data
 def select_tournament(session: session.Session) -> Tournament:
+    """Function to select which tournament data should be added to, allows options to choose an
+    existing tournament or to create a new tournament.
+
+    Parameters
+    ----------
+    session : session.Session
+
+    Returns
+    -------
+    Tournament
+        The object of the chosen tournament."""
 
     choice = choice_check("Select Option:\n" +
                           "a) Create new tournament database\n" +
@@ -158,6 +194,15 @@ def select_tournament(session: session.Session) -> Tournament:
 
 # enters new match data to match table
 def data_add(tournament: Tournament, session: session.Session):
+    """Function to enter data for a new tournament match. Cleans data and makes sure it fits the
+    correct format
+
+    Parameters
+    ----------
+    tournament : Tournament
+        The object of the tournament the entered match belongs to.
+    session : session.Session"""
+
     maps = tournament.map_pool.split()
     agents = tournament.agent_pool.split()
     teams = tournament.team_pool.split()
@@ -280,10 +325,33 @@ def data_add(tournament: Tournament, session: session.Session):
             break
 
 
+def add_agent(session: session.Session):
+    """Function to add a new agent to the Agent_Shorthand table.
+    Parameters
+    ----------
+    session : session.Session"""
+
+    agent = input("Enter Agent Name: ").upper()
+    short = input("Enter Abbreviation for {}: ".format(agent)).upper()
+
+    agent_shorthand = Agent_Shorthand(name=agent,
+                                      abbreviation=short)
+    session.add(agent_shorthand)
+    session.commit()
+    session.close()
+
+
 # loops options until not needed
-def game_loop():
+def game_loop(database: str):
+    """Main Function loop to call required destinations.
+
+    Parameters
+    ----------
+    database : str
+        The name of the database file where all data is stored."""
+
     while True:
-        engine = create_engine("sqlite:///VCT.db", echo=True)
+        engine = create_engine(f"sqlite:///{database}.db", echo=True)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -295,9 +363,17 @@ def game_loop():
 
         if task == "a":  # add new data
             while True:
-                tournament = select_tournament(session)
-                data_add(tournament, session)
-                done = choice_check("Would you like to look at another Tournament? (y/n) ",
+                match_or_agent = choice_check("What do you want to add?\n" +
+                                              "a) A new VCT match\n" +
+                                              "b) A new agent\n",
+                                              ["a", "b"])
+                if match_or_agent == "a":
+                    tournament = select_tournament(session)
+                    data_add(tournament, session)
+                elif match_or_agent == "b":
+                    add_agent()
+
+                done = choice_check("Would you like to add something else? (y/n) ",
                                     ["y", "n"])
                 if done == "n":
                     break
