@@ -351,7 +351,7 @@ def game_loop(database: str):
         The name of the database file where all data is stored."""
 
     while True:
-        engine = create_engine("sqlite:///{}.db".format(database), echo=True)
+        engine = create_engine(f"sqlite:///{database}.db", echo=True)
         Session = sessionmaker(bind=engine)
         session = Session()
 
