@@ -12,7 +12,7 @@ from .viewer import data_viewer
 # creates the initial maps, agents and teams tables
 def setup(tournament: Tournament, session: session.Session):
     """Function to create all the required fields in the databases for a new tournament.
-    
+
     Parameter
     ---------
     tournament : Tournament
@@ -61,9 +61,9 @@ def setup(tournament: Tournament, session: session.Session):
 
 # reloads all match data
 def data_refresh(session: session.Session):
-    """Function to clear the current processed data and re-enter the data into databases. This is 
+    """Function to clear the current processed data and re-enter the data into databases. This is
     useful for if changes to how data is processed are made.
-    
+
     Parameters
     ----------
     session : session.Session"""
@@ -107,7 +107,7 @@ def new_tournament(session: session.Session) -> str:
     Parameters
     ----------
     session : session.Session
-    
+
     Returns
     -------
     str
@@ -156,13 +156,13 @@ def new_tournament(session: session.Session) -> str:
 
 # selects the tournament for which to add data
 def select_tournament(session: session.Session) -> Tournament:
-    """Function to select which tournament data should be added to, allows options to choose an 
+    """Function to select which tournament data should be added to, allows options to choose an
     existing tournament or to create a new tournament.
-    
+
     Parameters
     ----------
     session : session.Session
-    
+
     Returns
     -------
     Tournament
@@ -194,9 +194,9 @@ def select_tournament(session: session.Session) -> Tournament:
 
 # enters new match data to match table
 def data_add(tournament: Tournament, session: session.Session):
-    """Function to enter data for a new tournament match. Cleans data and makes sure it fits the 
+    """Function to enter data for a new tournament match. Cleans data and makes sure it fits the
     correct format
-    
+
     Parameters
     ----------
     tournament : Tournament
@@ -324,6 +324,7 @@ def data_add(tournament: Tournament, session: session.Session):
         if done == "n":
             break
 
+
 def add_agent(session: session.Session):
     """Function to add a new agent to the Agent_Shorthand table.
     Parameters
@@ -339,15 +340,16 @@ def add_agent(session: session.Session):
     session.commit()
     session.close()
 
+
 # loops options until not needed
 def game_loop(database: str):
     """Main Function loop to call required destinations.
-    
+
     Parameters
     ----------
     database : str
         The name of the database file where all data is stored."""
-    
+
     while True:
         engine = create_engine("sqlite:///{}.db".format(database), echo=True)
         Session = sessionmaker(bind=engine)
@@ -370,7 +372,7 @@ def game_loop(database: str):
                     data_add(tournament, session)
                 elif match_or_agent == "b":
                     add_agent()
-                
+
                 done = choice_check("Would you like to add something else? (y/n) ",
                                     ["y", "n"])
                 if done == "n":

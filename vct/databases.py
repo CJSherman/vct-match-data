@@ -26,11 +26,13 @@ class Map(base):
 
     id: Mapped[str] = mapped_column(primary_key=True)
 
+
 class Agent_Shorthand(base):
     __tablename__ = "agent_referall"
 
     name: Mapped[str] = mapped_column(primary_key=True)
     abbreviation: Mapped[str] = mapped_column(unique=True)
+
 
 class Agent(base):
     __tablename__ = "agents"
