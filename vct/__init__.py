@@ -22,7 +22,7 @@ def setup_tournament(tournament: Tournament, session: session.Session):
     maps = tournament.map_pool.split()
     agents = tournament.agent_pool.split()
     teams = tournament.team_pool.split()
-    tournament = tournament.id
+    tournament = tournament.tournament
 
     for map in maps:
         map_row = Map(tournament=tournament,

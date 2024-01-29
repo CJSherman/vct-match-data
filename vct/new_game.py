@@ -1,4 +1,4 @@
-from .databases import Comp, Match, Agent, Map
+from .databases import Comp, Match, Agent, Map, Team
 
 
 # adjusts map data from a new map
@@ -12,11 +12,9 @@ def new_game_map(match: Match, session):
     session"""
 
     specific_map = match.map_ref
-    ovr_map = session.query(Map).where((Map.tournament == "") & (Map.map == specific_map.map)).all()
+    ovr_map = session.query(Map).where((Map.tournament == "") &
+                                       (Map.map == specific_map.map)).first()
     maps = [specific_map, ovr_map]
-    print(len(ovr_map))
-    if len(ovr_map) > 1:
-        print("x\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx")
     for map in maps:
         map.games += 1
         map.ct_wins += match.team_1_half + match.team_2_half_2
@@ -25,7 +23,7 @@ def new_game_map(match: Match, session):
     session.commit()
 
 
-def new_game_agent(team: list[Agent], result: int):
+def new_game_agent(team: list[Agent], result: int, session):
     """Function to Update the Agent Table from data in a new Match.
 
     Paramaters
@@ -36,8 +34,20 @@ def new_game_agent(team: list[Agent], result: int):
         Int showing whether the team won."""
 
     for agent in team:
-        agent.games += 1
-        agent.wins += result
+        specific_agent = agent
+        map_agent = session.query(Agent).where((Agent.tournament == "") &
+                                               (Agent.map == agent.map) &
+                                               (Agent.agent == agent.agent)).first()
+        tour_agent = session.query(Agent).where((Agent.tournament == agent.tournament) &
+                                                (Agent.map == "") &
+                                                (Agent.agent == agent.agent)).first()
+        ovr_agent = session.query(Agent).where((Agent.tournament == "") &
+                                               (Agent.map == "") &
+                                               (Agent.agent == agent.agent)).first()
+        agents = [specific_agent, map_agent, tour_agent, ovr_agent]
+        for agent_ in agents:
+            agent_.games += 1
+            agent_.wins += result
 
 
 # adjusts agent and comp data from a new map
@@ -57,8 +67,7 @@ def new_game_comp(match: Match, result: int, session):
                match.team_1_agent_3_ref,
                match.team_1_agent_4_ref,
                match.team_1_agent_5_ref],
-              [match.team_1_comp_id,
-               match.team_1_comp_ref,
+              [match.team_1_comp_ref,
                "{} {} {} {} {}".format(
                    match.team_1_agent_1_ref.agent_ref.abbreviation,
                    match.team_1_agent_2_ref.agent_ref.abbreviation,
@@ -71,8 +80,7 @@ def new_game_comp(match: Match, result: int, session):
                match.team_2_agent_3_ref,
                match.team_2_agent_4_ref,
                match.team_2_agent_5_ref],
-              [match.team_2_comp_id,
-               match.team_2_comp_ref,
+              [match.team_2_comp_ref,
                "{} {} {} {} {}".format(
                    match.team_2_agent_1_ref.agent_ref.abbreviation,
                    match.team_2_agent_2_ref.agent_ref.abbreviation,
@@ -83,13 +91,19 @@ def new_game_comp(match: Match, result: int, session):
     teams = [team_1, team_2]
 
     for team in teams:
-        comp = session.query(Comp).filter_by(id=team[1][0]).first()
+        comp = session.query(Comp).where((Comp.tournament == match.tournament) &
+                                         (Comp.map == match.map) &
+                                         (Comp.agent_1 == team[0][0].agent) &
+                                         (Comp.agent_2 == team[0][1].agent) &
+                                         (Comp.agent_3 == team[0][2].agent) &
+                                         (Comp.agent_4 == team[0][3].agent) &
+                                         (Comp.agent_5 == team[0][4].agent)).first()
         # if comp already has an entry, update it
         if comp:
             comp.games += 1
             comp.wins += result
-            if not team[1][1]:
-                team[1][1] = comp
+            if not team[1][0]:
+                team[1][0] = comp
         # otherwise create new entry
         else:
             new_comp = Comp(tournament=match.tournament,
@@ -101,17 +115,10 @@ def new_game_comp(match: Match, result: int, session):
                             agent_5=team[0][4].agent,
                             games=1,
                             wins=result,
-                            id=team[1][0],
-                            ref=team[1][2],
-                            map_id=match.map_id,
-                            agent_1_id=team[0][0].id,
-                            agent_2_id=team[0][1].id,
-                            agent_3_id=team[0][2].id,
-                            agent_4_id=team[0][3].id,
-                            agent_5_id=team[0][4].id)
+                            ref=team[1][1])
             session.add(new_comp)
 
-        new_game_agent(team[0], result)
+        new_game_agent(team[0], result, session)
 
         # swaps result for the other team
         result = (result + 1) % 2
@@ -136,6 +143,20 @@ def new_game_team(match: Match, result: int, session):
 
     # updates team
     for team in teams:
+        specific_team = team
+        map_team = session.query(Team).where((Team.tournament == "") &
+                                             (Team.map == team.map) &
+                                             (Team.team == team.team)).first()
+        tour_team = session.query(Team).where((Team.tournament == team.tournament) &
+                                              (Team.map == "") &
+                                              (Team.team == team.team)).first()
+        ovr_team = session.query(Team).where((Team.tournament == "") &
+                                             (Team.map == "") &
+                                             (Team.team == team.team)).first()
+        teams_ = [specific_team, map_team, tour_team, ovr_team]
+        for team_ in teams_:
+            team_.games += 1
+            team_.wins += result
         team.games += 1
         team.wins += result
 
@@ -168,7 +189,6 @@ def new_game(match: Match, result: int, session):
         The Match object for the new Match.
     result : int
         Int showing which team won."""
-
     new_game_tournament(match, session)
     new_game_map(match, session)
     new_game_comp(match, result, session)
