@@ -3,14 +3,14 @@ import numpy as np
 from sqlalchemy.orm import sessionmaker, session
 from sqlalchemy import create_engine
 
-from .databases import Tournament, Map, Agent, Comp, Team, Match, Agent_Shorthand
+from .databases import Tournament, Map, Agent, Comp, Team, Match, Referall
 from .functions import data_check, choice_check, int_input
 from .new_game import new_game
 from .viewer import data_viewer
 
 
 # creates the initial maps, agents and teams tables
-def setup(tournament: Tournament, session: session.Session):
+def setup_tournament(tournament: Tournament, session: session.Session):
     """Function to create all the required fields in the databases for a new tournament.
 
     Parameter
@@ -25,36 +25,92 @@ def setup(tournament: Tournament, session: session.Session):
     tournament = tournament.id
 
     for map in maps:
-        mapid = tournament + map
         map_row = Map(tournament=tournament,
                       map=map,
                       games=0,
                       ct_wins=0,
-                      t_wins=0,
-                      id=mapid)
+                      t_wins=0)
         session.add(map_row)
 
         for agent in agents:
-            agentid = mapid + agent
             agent_row = Agent(tournament=tournament,
                               map=map,
                               agent=agent,
                               games=0,
-                              wins=0,
-                              id=agentid,
-                              map_id=mapid)
+                              wins=0)
             session.add(agent_row)
 
         for team in teams:
-            teamid = mapid + team
             team_row = Team(tournament=tournament,
                             map=map,
                             team=team,
                             games=0,
-                            wins=0,
-                            id=teamid,
-                            map_id=mapid)
+                            wins=0)
             session.add(team_row)
+
+    for agent in agents:
+        ovr_agent = Agent(tournament=tournament,
+                          map="",
+                          agent=agent,
+                          games=0,
+                          wins=0)
+        session.add(ovr_agent)
+
+    for team in teams:
+        ovr_team = Team(tournament=tournament,
+                        map="",
+                        team=team,
+                        games=0,
+                        wins=0)
+        session.add(ovr_team)
+
+    session.commit()
+
+
+def setup(session: session.Session):
+    maps = session.query(Referall).where(Referall.type == "MAP").all()
+    agents = session.query(Referall).where(Referall.type == "AGENT").all()
+    teams = session.query(Referall).where(Referall.type == "TEAM").all()
+
+    for map in maps:
+        ovr_map = Map(tournament="",
+                      map=map.name,
+                      games=0,
+                      ct_wins=0,
+                      t_wins=0)
+        session.add(ovr_map)
+
+        for agent in agents:
+            map_agent = Agent(tournament="",
+                              map=map.name,
+                              agent=agent.name,
+                              games=0,
+                              wins=0)
+            session.add(map_agent)
+
+        for team in teams:
+            map_team = Team(tournament="",
+                            map=map.name,
+                            team=team.name,
+                            games=0,
+                            wins=0)
+            session.add(map_team)
+
+    for agent in agents:
+        ovr_agent = Agent(tournament="",
+                          map="",
+                          agent=agent.name,
+                          games=0,
+                          wins=0)
+        session.add(ovr_agent)
+
+    for team in teams:
+        ovr_team = Team(tournament="",
+                        map="",
+                        team=team.name,
+                        games=0,
+                        wins=0)
+        session.add(ovr_team)
 
     session.commit()
 
@@ -84,11 +140,13 @@ def data_refresh(session: session.Session):
 
     session.commit()
 
+    setup(session)
+
     # creates entries in each table for each tournament
     tournaments = session.query(Tournament).all()
     for tournament in tournaments:
         tournament.games = 0
-        setup(tournament, session)
+        setup_tournament(tournament, session)
 
     # adds all existing match data
     matches = session.query(Match).all()
@@ -101,6 +159,7 @@ def data_refresh(session: session.Session):
 
 
 # creates a new entry in the tournaments table and accompaning records for maps, agents and teams
+# TODO add check that reference exists for agents, teams and maps
 def new_tournament(session: session.Session) -> str:
     """Function to take the input of the base information for a new tournament.
 
@@ -325,18 +384,20 @@ def data_add(tournament: Tournament, session: session.Session):
             break
 
 
-def add_agent(session: session.Session):
-    """Function to add a new agent to the Agent_Shorthand table.
+def add_referall(type: str, session: session.Session):
+    """Function to add a new map, agent or team to the Referall table.
     Parameters
     ----------
+    type : {"MAP", "AGENT", "TEAM"}
     session : session.Session"""
 
-    agent = input("Enter Agent Name: ").upper()
-    short = input("Enter Abbreviation for {}: ".format(agent)).upper()
+    name = input(f"Enter {type.title()} Name: ").upper()
+    short = input(f"Enter Abbreviation for {name.title()}: ").upper()
 
-    agent_shorthand = Agent_Shorthand(name=agent,
-                                      abbreviation=short)
-    session.add(agent_shorthand)
+    shorthand = Referall(name=name,
+                         abbreviation=short,
+                         type=type)
+    session.add(shorthand)
     session.commit()
     session.close()
 
@@ -364,14 +425,20 @@ def game_loop(database: str):
         if task == "a":  # add new data
             while True:
                 match_or_agent = choice_check("What do you want to add?\n" +
-                                              "a) A new VCT match\n" +
-                                              "b) A new agent\n",
-                                              ["a", "b"])
+                                              "a) A new VCT Match\n" +
+                                              "b) A new Map\n" +
+                                              "c) A new Agent\n" +
+                                              "d) A new Team\n",
+                                              ["a", "b", "c", "d"])
                 if match_or_agent == "a":
                     tournament = select_tournament(session)
                     data_add(tournament, session)
                 elif match_or_agent == "b":
-                    add_agent()
+                    add_referall("MAP", session)
+                elif match_or_agent == "c":
+                    add_referall("AGENT", session)
+                elif match_or_agent == "d":
+                    add_referall("TEAM", session)
 
                 done = choice_check("Would you like to add something else? (y/n) ",
                                     ["y", "n"])

@@ -1,4 +1,4 @@
-from .databases import Comp, Match, Agent
+from .databases import Comp, Match, Agent, Map
 
 
 # adjusts map data from a new map
@@ -11,10 +11,16 @@ def new_game_map(match: Match, session):
         The Match object to update the table from.
     session"""
 
-    map = match.map_ref
-    map.games += 1
-    map.ct_wins += match.team_1_half + match.team_2_half_2
-    map.t_wins += match.team_1_half_2 + match.team_2_half
+    specific_map = match.map_ref
+    ovr_map = session.query(Map).where((Map.tournament == "") & (Map.map == specific_map.map)).all()
+    maps = [specific_map, ovr_map]
+    print(len(ovr_map))
+    if len(ovr_map) > 1:
+        print("x\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx")
+    for map in maps:
+        map.games += 1
+        map.ct_wins += match.team_1_half + match.team_2_half_2
+        map.t_wins += match.team_1_half_2 + match.team_2_half
 
     session.commit()
 

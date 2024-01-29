@@ -25,7 +25,8 @@ Data comes in 4 forms:
    * Winrate
    * Rating
  * Teams
-   * Pickrate
+   * Matches
+   * Wins
    * Winrate
    * Rating
 

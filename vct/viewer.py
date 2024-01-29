@@ -276,6 +276,7 @@ def view_teams(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
     -------
     str
         The Data."""
+
     tournaments_maps_or_teams = choice_check("How do you want to view Team stats?\n" +
                                              "a) By Teams\n" +
                                              "b) By Maps\n" +
@@ -295,7 +296,7 @@ def view_teams(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
         teams = session.query(Team).where(
             Team.map_id == (Tournaments[tournament_choice-1] + Maps[map_choice-1])).\
             order_by((Team.wins/map.games).desc()).all()
-        output = "Team{:11s}Games{:3s}Winrate{:4s}Rating\n".format("", "", "")
+        output = "Team{:9s}Matches{:3s}Winrate{:4s}Rating\n".format("", "", "")
         for team in teams:
             pickrate = divide(team.games, 2*team.map_ref.games)
             winrate = divide(team.wins, team.games)
