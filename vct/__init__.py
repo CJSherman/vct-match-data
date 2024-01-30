@@ -47,8 +47,6 @@ def setup(tournament: Tournament, session: session.Session):
                         wins=0)
         session.add(ovr_team)
 
-    session.commit()
-
     for map in maps:
         map_row = Map(tournament=tournament,
                       map=map,
@@ -72,6 +70,8 @@ def setup(tournament: Tournament, session: session.Session):
                             games=0,
                             wins=0)
             session.add(team_row)
+
+    session.commit()
 
 
 # reloads all match data
@@ -116,7 +116,6 @@ def data_refresh(session: session.Session):
 
 
 # creates a new entry in the tournaments table and accompaning records for maps, agents and teams
-# TODO add check that reference exists for agents, teams and maps
 def new_tournament(session: session.Session) -> str:
     """Function to take the input of the base information for a new tournament.
 

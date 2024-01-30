@@ -103,48 +103,55 @@ def new_game_comp(match: Match, result: int, session):
                                          (Comp.agent_3 == team[0][2].agent) &
                                          (Comp.agent_4 == team[0][3].agent) &
                                          (Comp.agent_5 == team[0][4].agent)).first()
-        ovr_comp = session.query(Comp).where((Comp.tournament == "Overall") &
+
+        map_comp = session.query(Comp).where((Comp.tournament == "Overall") &
                                              (Comp.map == match.map) &
                                              (Comp.agent_1 == team[0][0].agent) &
                                              (Comp.agent_2 == team[0][1].agent) &
                                              (Comp.agent_3 == team[0][2].agent) &
                                              (Comp.agent_4 == team[0][3].agent) &
                                              (Comp.agent_5 == team[0][4].agent)).first()
-        if ovr_comp:
-            ovr_comp.games += 1
-            ovr_comp.wins += result
-        else:
-            new_ovr = Comp(tournament="Overall",
-                           map=match.map,
-                           agent_1=team[0][0].agent,
-                           agent_2=team[0][1].agent,
-                           agent_3=team[0][2].agent,
-                           agent_4=team[0][3].agent,
-                           agent_5=team[0][4].agent,
-                           games=1,
-                           wins=result,
-                           ref=team[1][1])
-            session.add(new_ovr)
 
-        # if comp already has an entry, update it
-        if comp:
-            comp.games += 1
-            comp.wins += result
-            if not team[1][0]:
-                team[1][0] = comp
-        # otherwise create new entry
-        else:
-            new_comp = Comp(tournament=match.tournament,
-                            map=match.map,
-                            agent_1=team[0][0].agent,
-                            agent_2=team[0][1].agent,
-                            agent_3=team[0][2].agent,
-                            agent_4=team[0][3].agent,
-                            agent_5=team[0][4].agent,
-                            games=1,
-                            wins=result,
-                            ref=team[1][1])
-            session.add(new_comp)
+        tour_comp = session.query(Comp).where((Comp.tournament == match.tournament) &
+                                              (Comp.map == "Overall") &
+                                              (Comp.agent_1 == team[0][0].agent) &
+                                              (Comp.agent_2 == team[0][1].agent) &
+                                              (Comp.agent_3 == team[0][2].agent) &
+                                              (Comp.agent_4 == team[0][3].agent) &
+                                              (Comp.agent_5 == team[0][4].agent)).first()
+
+        ovr_comp = session.query(Comp).where((Comp.tournament == "Overall") &
+                                             (Comp.map == "Overall") &
+                                             (Comp.agent_1 == team[0][0].agent) &
+                                             (Comp.agent_2 == team[0][1].agent) &
+                                             (Comp.agent_3 == team[0][2].agent) &
+                                             (Comp.agent_4 == team[0][3].agent) &
+                                             (Comp.agent_5 == team[0][4].agent)).first()
+        comps = [[ovr_comp, map_comp, tour_comp, comp],
+                 [["Overall", "Overall"],
+                  ["Overall", match.map],
+                  [match.tournament, "Overall"],
+                  [match.tournament, match.map]]]
+
+        for n, comp_ in enumerate(comps[0]):
+            if comp_:
+                comp_.games += 1
+                comp_.wins += result
+            else:
+                new_comp = Comp(tournament=comps[1][n][0],
+                                map=comps[1][n][1],
+                                agent_1=team[0][0].agent,
+                                agent_2=team[0][1].agent,
+                                agent_3=team[0][2].agent,
+                                agent_4=team[0][3].agent,
+                                agent_5=team[0][4].agent,
+                                games=1,
+                                wins=result,
+                                ref=team[1][1])
+                session.add(new_comp)
+
+        if not team[1][0]:
+            team[1][0] = comp
 
         new_game_agent(team[0], result, session)
 
