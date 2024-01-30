@@ -10,7 +10,7 @@ from .viewer import data_viewer
 
 
 # creates the initial maps, agents and teams tables
-def setup_tournament(tournament: Tournament, session: session.Session):
+def setup(tournament: Tournament, session: session.Session):
     """Function to create all the required fields in the databases for a new tournament.
 
     Parameter
@@ -67,54 +67,6 @@ def setup_tournament(tournament: Tournament, session: session.Session):
     session.commit()
 
 
-def setup(session: session.Session):
-    maps = session.query(Referall).where(Referall.type == "MAP").all()
-    agents = session.query(Referall).where(Referall.type == "AGENT").all()
-    teams = session.query(Referall).where(Referall.type == "TEAM").all()
-
-    for map in maps:
-        ovr_map = Map(tournament="",
-                      map=map.name,
-                      games=0,
-                      ct_wins=0,
-                      t_wins=0)
-        session.add(ovr_map)
-
-        for agent in agents:
-            map_agent = Agent(tournament="",
-                              map=map.name,
-                              agent=agent.name,
-                              games=0,
-                              wins=0)
-            session.add(map_agent)
-
-        for team in teams:
-            map_team = Team(tournament="",
-                            map=map.name,
-                            team=team.name,
-                            games=0,
-                            wins=0)
-            session.add(map_team)
-
-    for agent in agents:
-        ovr_agent = Agent(tournament="",
-                          map="",
-                          agent=agent.name,
-                          games=0,
-                          wins=0)
-        session.add(ovr_agent)
-
-    for team in teams:
-        ovr_team = Team(tournament="",
-                        map="",
-                        team=team.name,
-                        games=0,
-                        wins=0)
-        session.add(ovr_team)
-
-    session.commit()
-
-
 # reloads all match data
 def data_refresh(session: session.Session):
     """Function to clear the current processed data and re-enter the data into databases. This is
@@ -140,13 +92,11 @@ def data_refresh(session: session.Session):
 
     session.commit()
 
-    setup(session)
-
     # creates entries in each table for each tournament
     tournaments = session.query(Tournament).all()
     for tournament in tournaments:
         tournament.games = 0
-        setup_tournament(tournament, session)
+        setup(tournament, session)
 
     # adds all existing match data
     matches = session.query(Match).all()

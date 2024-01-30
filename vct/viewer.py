@@ -8,6 +8,7 @@ from .databases import Tournament, Map, Agent, Comp, Team
 from .functions import choice_check, divide, int_input
 
 
+# TODO fix viewers
 def view_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_msg: str,
               session: session.Session) -> str:
     """Function to retrieve text map data. Data can be sorted by map or tournament.
@@ -93,11 +94,11 @@ def view_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
         # object of the chosen map
-        map = session.query(Map).where(
-            Map.id == (Tournaments[tournament_choice-1] + Maps[map_choice-1])).first()
+        map = session.query(Map).where((Map.map == Maps[map_choice-1]) &
+                                       (Map.tournament == Tournaments[tournament_choice-1])).first()
         # list of comps played in the chosen tournament on the chosen map
-        comps = session.query(Comp).where(
-            Comp.map_id == (Tournaments[tournament_choice-1] + Maps[map_choice-1])).\
+        comps = session.query(Comp).where((Comp.map == Maps[map_choice-1]) &
+                                          (Comp.tournament == Tournaments[tournament_choice-1])).\
             order_by((Comp.wins/map.games).desc()).all()
 
         output = "{:<50s}Pickrate{:<2s}Winrate{:<3s}Rating\n".format("", "", "")
@@ -362,6 +363,7 @@ def plotter(x: list, y: list, label: str, title: str, labels: list[str] = None, 
     plt.figure(figsize=(20, 10))
     if label == "Sidedness":
         plt.ylim(-50, 50)
+        plt.plot(x_axis, np.zeros(len(x_axis)), "k-")
     elif label in ["Matches", "Wins"]:
         pass
     else:
@@ -411,7 +413,8 @@ def plot_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_
     if dependent == "a":  # x=Tournaments
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
-        maps = session.query(Map).where(Map.map == Maps[map_choice-1]).all()
+        maps = session.query(Map).where((Map.map == Maps[map_choice-1]) &
+                                        (Map.tournament != "Overall")).all()
 
         x = [map.tournament for map in maps]
         if independent == "a":  # y=Pickrate
@@ -425,9 +428,9 @@ def plot_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_
 
     elif dependent == "b":  # x=Maps
         tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
-                                             tournament_msg,
-                                             np.arange(1, len(Tournaments)+1)))
-        maps = session.query(Map).where(Map.tournament == Tournaments[tournament_choice-1]).all()
+                                             tournament_msg, np.arange(1, len(Tournaments)+1)))
+        maps = session.query(Map).\
+            where(Map.tournament == Tournaments[tournament_choice-1]).all()
 
         x = [map.map for map in maps]
         if independent == "a":  # y=Pickrate
@@ -471,26 +474,26 @@ def plot_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
     if dependent == "a":  # x=Tournaments"
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
-        tournaments = session.query(Map).where(Map.map == Maps[map_choice-1]).all()
+        tournaments = session.query(Map).where((Map.tournament != "Overall") &
+                                               (Map.map == Maps[map_choice-1])).all()
         labels = []
         y = []
         x = []
         for tournament in tournaments:
+            comp_search = session.query(Comp).where((Comp.tournament == tournament.tournament) &
+                                                    (Comp.map == Maps[map_choice-1]))
             if independent == "a":  # y=Pickrate
-                comps = session.query(Comp).where(Comp.map_id == tournament.id).\
-                    order_by(Comp.games.desc()).all()
+                comps = comp_search.order_by(Comp.games.desc()).all()
                 comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.games, 2*comp.map_ref.games) for comp in comps]
                 label = "Pickrate"
             elif independent == "b":  # y=Winrate
-                comps = session.query(Comp).where(Comp.map_id == tournament.id).\
-                    order_by(Comp.wins.desc()).all()
+                comps = comp_search.order_by(Comp.wins.desc()).all()
                 comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.wins, comp.games) for comp in comps]
                 label = "Winrate"
             elif independent == "c":  # y=Rating
-                comps = session.query(Comp).where(Comp.map_id == tournament.id).\
-                    order_by(Comp.wins.desc()).all()
+                comps = comp_search.order_by(Comp.wins.desc()).all()
                 comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
                 label = "Rating"
@@ -503,28 +506,29 @@ def plot_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
         plotter(x, y, label, Maps[map_choice-1], labels, n=comp_choice)
 
     elif dependent == "b":  # x=Maps
-        tournament_choice = int(choice_check("What Map do you want to view?\n" + tournament_msg,
+        tournament_choice = int(choice_check("What Tournament do you want to view?\n" + 
+                                             tournament_msg,
                                              np.arange(1, len(Tournaments)+1)))
         maps = session.query(Map).where(Map.tournament == Tournaments[tournament_choice-1]).all()
         labels = []
         y = []
         x = []
         for map in maps:
+            comp_search = session.query(Comp).where(
+                (Comp.tournament == Tournaments[tournament_choice-1]) &
+                (Comp.map == map.map))
             if independent == "a":  # y=Pickrate
-                comps = session.query(Comp).where(Comp.map_id == map.id).\
-                    order_by(Comp.games.desc()).all()
+                comps = comp_search.order_by(Comp.games.desc()).all()
                 comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.games, 2*comp.map_ref.games) for comp in comps]
                 label = "Pickrate"
             elif independent == "b":  # y=Winrate
-                comps = session.query(Comp).where(Comp.map_id == map.id).\
-                    order_by(Comp.wins.desc()).all()
+                comps = comp_search.order_by(Comp.wins.desc()).all()
                 comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.wins, comp.games) for comp in comps]
                 label = "Winrate"
             elif independent == "c":  # y=Rating
-                comps = session.query(Comp).where(Comp.map_id == map.id).\
-                    order_by(Comp.wins.desc()).all()
+                comps = comp_search.order_by(Comp.wins.desc()).all()
                 comps = comps[:comp_choice]
                 y_ = [100 * divide(comp.wins, comp.map_ref.games) for comp in comps]
                 label = "Rating"
@@ -557,31 +561,32 @@ def plot_agents_tournaments(Maps: list, map_msg: str, Agents: list, agent_msg: s
                          "b) Agent\n" +
                          "c) Agent on a Given Map\n",
                          ["a", "b", "c"])
+    
     if title == "a":  # Title=Map
-        map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
-                                      np.arange(1, len(Maps)+1)))
         agent_choice = int_input("How Many Agents Should Be Shown In Plots? (Default is 5)\n" +
                                  "Note: If this number is too large no data will be shown")
-        tournaments = session.query(Map).where(Map.map == Maps[map_choice-1]).all()
+        map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
+                                      np.arange(1, len(Maps)+1)))
+        tournaments = session.query(Map).where((Map.tournament != "Overall") &
+                                               (Map.map == Maps[map_choice-1])).all()
         labels = []
         y = []
         x = []
         for tournament in tournaments:
+            agent_search = session.query(Agent).where((Agent.tournament == tournament.tournament) &
+                                                      (Agent.map == tournament.map))
             if independent == "a":  # y=Pickrate
-                agents = session.query(Agent).where(Agent.map_id == tournament.id).\
-                    order_by(Agent.games.desc()).all()
+                agents = agent_search.order_by(Agent.games.desc()).all()
                 agents = agents[:agent_choice]
                 y_ = [100 * divide(agent.games, 2*agent.map_ref.games) for agent in agents]
                 label = "Pickrate"
             elif independent == "b":  # y=Winrate
-                agents = session.query(Agent).where(Agent.map_id == tournament.id).\
-                    order_by(Agent.wins.desc()).all()
+                agents = agent_search.order_by(Agent.wins.desc()).all()
                 agents = agents[:agent_choice]
                 y_ = [100 * divide(agent.wins, agent.games) for agent in agents]
                 label = "Winrate"
             elif independent == "c":  # y=Rating
-                agents = session.query(Agent).where(Agent.map_id == tournament.id).\
-                    order_by(Agent.wins.desc()).all()
+                agents = agent_search.order_by(Agent.wins.desc()).all()
                 agents = agents[:agent_choice]
                 y_ = [100 * divide(agent.wins, agent.map_ref.games) for agent in agents]
                 label = "Rating"
@@ -595,39 +600,18 @@ def plot_agents_tournaments(Maps: list, map_msg: str, Agents: list, agent_msg: s
     elif title == "b":  # Title=Agent
         agent_choice = int(choice_check("What Agent do you want to view?\n" + agent_msg,
                                         np.arange(1, len(Agents)+1)))
-        tournaments = session.query(Agent).where(Agent.agent == Agents[agent_choice-1]).all()
-        y = []
-        x = []
-        y_num = 0
-        y_den = 0
-        curr_tour = ""
-        if independent == "a":
-            pre = 2
-        else:
-            pre = 1
-        for tournament in tournaments:
-            if curr_tour == "":
-                curr_tour = tournament.tournament
-            elif tournament.tournament != curr_tour:
-                y.append([100*divide(y_num, pre*y_den)])
-                x.append(curr_tour)
-                y_num = 0
-                y_den = 0
-                curr_tour = tournament.tournament
-            if independent == "a":  # y=Pickrate
-                y_num += tournament.games
-                y_den += tournament.map_ref.games
-                label = "Pickrate"
-            elif independent == "b":  # y=Winrate
-                y_num += tournament.wins
-                y_den += tournament.games
-                label = "Winrate"
-            elif independent == "c":  # y=Rating
-                y_num += tournament.wins
-                y_den += tournament.map_ref.games
-                label = "Rating"
-        x.append(tournament.tournament)
-        y.append([100*divide(y_num, pre*y_den)])
+        agents = session.query(Agent).where((Agent.map == "") &
+                                            (Agent.agent == Agents[agent_choice-1])).all()
+        x = [agent.tournament for agent in agents]
+        if independent == "a":  # y=Pickrate
+            y = [[100 * divide(agent.games, 2*agent.tournament_ref.games)] for agent in agents]
+            label = "Pickrate"
+        elif independent == "b":  # y=Winrate
+            y = [[100 * divide(agent.wins, agent.games)] for agent in agents]
+            label = "Winrate"
+        elif independent == "c":  # y=Rating
+            y = [[100 * divide(agent.wins, agent.tournament_ref.games)] for agent in agents]
+            label = "Rating"
         plotter(x, y, label, Agents[agent_choice-1])
 
     elif title == "c":  # Title=AgentOnMap
@@ -635,20 +619,18 @@ def plot_agents_tournaments(Maps: list, map_msg: str, Agents: list, agent_msg: s
                                         np.arange(1, len(Agents)+1)))
         map_choice = int(choice_check(f"What Map do you want to view {Agents[agent_choice-1]} on?\n"
                                       + map_msg, np.arange(1, len(Maps)+1)))
-        tournaments = session.query(Agent).where((Agent.agent == Agents[agent_choice-1]) &
-                                                 (Agent.map == Maps[map_choice-1])).all()
-        x = [tournament.tournament for tournament in tournaments]
+        agents = session.query(Agent).where((Agent.map == Maps[map_choice-1]) &
+                                            (Agent.agent == Agents[agent_choice-1])).all()
+        x = [agent.tournament for agent in agents]
         if independent == "a":  # y=Pickrate
-            y = [[100 * divide(tournament.games, 2*tournament.map_ref.games)]
-                 for tournament in tournaments]
+            y = [[100 * divide(agent.games, 2*agent.map_ref.games)] for agent in agents]
             label = "Pickrate"
         elif independent == "b":  # y=Winrate
-            y = [[100 * divide(tournament.wins, tournament.games)]
-                 for tournament in tournaments]
+            y = [[100 * divide(agent.wins, agent.games)] for agent in agents]
             label = "Winrate"
         elif independent == "c":  # y=Rating
-            y = [[100 * divide(tournament.wins, tournament.map_ref.games)]
-                 for tournament in tournaments]
+            y = [[100 * divide(agent.wins, agent.map_ref.games)]
+                 for agent in agents]
             label = "Rating"
         plotter(x, y, label, f"{Agents[agent_choice-1]} on {Maps[map_choice-1]}")
 
@@ -675,33 +657,29 @@ def plot_agents_maps(Tournaments: list, tournament_msg: str, Agents: list, agent
                          "c) Agent on a Given Map\n",
                          ["a", "b", "c"])
     if title == "a":  # Title=Tournament
-        tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
-                                             tournament_msg, np.arange(1, len(Tournaments)+1)))
         agent_choice = int_input("How Many Agents Should Be Shown In Plots? (Default is 5)\n" +
                                  "Note: If this number is too large no data will be shown")
+        tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
+                                             tournament_msg, np.arange(1, len(Tournaments)+1)))
         maps = session.query(Map).where(Map.tournament == Tournaments[tournament_choice-1]).all()
         labels = []
         y = []
         x = []
         for map in maps:
+            agent_search = session.query(Agent).where((Agent.tournament == map.tournament) &
+                                                      (Agent.map == map.map))
             if independent == "a":  # y=Pickrate
-                agents = session.query(Agent).where(
-                    Agent.tournament == Tournaments[tournament_choice-1]).\
-                        order_by(Agent.games.desc()).all()
+                agents = agent_search.order_by(Agent.games.desc()).all()
                 agents = agents[:agent_choice]
                 y_ = [100 * divide(agent.games, 2*agent.map_ref.games) for agent in agents]
                 label = "Pickrate"
             elif independent == "b":  # y=Winrate
-                agents = session.query(Agent).where(
-                    Agent.tournament == Tournaments[tournament_choice-1]).\
-                        order_by(Agent.wins.desc()).all()
+                agents = agent_search.order_by(Agent.wins.desc()).all()
                 agents = agents[:agent_choice]
                 y_ = [100 * divide(agent.wins, agent.games) for agent in agents]
                 label = "Winrate"
             elif independent == "c":  # y=Rating
-                agents = session.query(Agent).where(
-                    Agent.tournament == Tournaments[tournament_choice-1]).\
-                        order_by(Agent.wins.desc()).all()
+                agents = agent_search.order_by(Agent.wins.desc()).all()
                 agents = agents[:agent_choice]
                 y_ = [100 * divide(agent.wins, agent.map_ref.games) for agent in agents]
                 label = "Rating"
@@ -715,40 +693,20 @@ def plot_agents_maps(Tournaments: list, tournament_msg: str, Agents: list, agent
     elif title == "b":  # Title=Agent
         agent_choice = int(choice_check("What Agent do you want to view?\n" + agent_msg,
                                         np.arange(1, len(Agents)+1)))
-        maps = session.query(Agent).where(Agent.agent == Agents[agent_choice-1]).\
-            order_by(Agent.map).all()
-        y = []
-        x = []
-        y_num = 0
-        y_den = 0
-        curr_map = ""
-        if independent == "a":
-            pre = 2
-        else:
-            pre = 1
-        for map in maps:
-            if curr_map == "":
-                curr_map = map.map
-            elif map.map != curr_map:
-                y.append([100*divide(y_num, pre*y_den)])
-                x.append(curr_map)
-                y_num = 0
-                y_den = 0
-                curr_map = map.map
-            if independent == "a":  # y=Pickrate
-                y_num += map.games
-                y_den += map.map_ref.games
-                label = "Pickrate"
-            elif independent == "b":  # y=Winrate
-                y_num += map.wins
-                y_den += map.games
-                label = "Winrate"
-            elif independent == "c":  # y=Rating
-                y_num += map.wins
-                y_den += map.map_ref.games
-                label = "Rating"
-        x.append(map.map)
-        y.append([100*divide(y_num, pre*y_den)])
+        agents = session.query(Agent).\
+            where((Agent.tournament == "Overall") &
+                  (Agent.map != "") &
+                  (Agent.agent == Agents[agent_choice-1])).order_by(Agent.map).all()
+        x = [agent.map for agent in agents]
+        if independent == "a":  # y=Pickrate
+            y = [[100 * divide(agent.games, 2*agent.map_ref.games)] for agent in agents]
+            label = "Pickrate"
+        elif independent == "b":  # y=Winrate
+            y = [[100 * divide(agent.wins, agent.games)] for agent in agents]
+            label = "Winrate"
+        elif independent == "c":  # y=Rating
+            y = [[100 * divide(agent.wins, agent.map_ref.games)] for agent in agents]
+            label = "Rating"
         plotter(x, y, label, Agents[agent_choice-1])
 
     elif title == "c":  # Title=AgentOnTournament
@@ -757,18 +715,20 @@ def plot_agents_maps(Tournaments: list, tournament_msg: str, Agents: list, agent
         tournament_choice = int(choice_check("What Tournament do you want to view " +
                                              f"{Agents[agent_choice-1]} on?\n" + tournament_msg,
                                              np.arange(1, len(Tournaments)+1)))
-        maps = session.query(Agent).\
-            where((Agent.agent == Agents[agent_choice-1]) &
-                  (Agent.tournament == Tournaments[tournament_choice-1])).all()
-        x = [map.map for map in maps]
+        agents = session.query(Agent).\
+            where((Agent.tournament == Tournaments[tournament_choice-1]) &
+                  (Agent.map != "") &
+                  (Agent.agent == Agents[agent_choice-1])).all()
+        print(agents)
+        x = [agent.map for agent in agents]
         if independent == "a":  # y=Pickrate
-            y = [[100 * divide(map.games, 2*map.map_ref.games)] for map in maps]
+            y = [[100 * divide(agent.games, 2*agent.map_ref.games)] for agent in agents]
             label = "Pickrate"
         elif independent == "b":  # y=Winrate
-            y = [[100 * divide(map.wins, map.games)] for map in maps]
+            y = [[100 * divide(agent.wins, agent.games)] for agent in agents]
             label = "Winrate"
         elif independent == "c":  # y=Rating
-            y = [[100 * divide(map.wins, map.map_ref.games)] for map in maps]
+            y = [[100 * divide(agent.wins, agent.map_ref.games)] for agent in agents]
             label = "Rating"
         plotter(x, y, label, f"{Agents[agent_choice-1]} on {Tournaments[tournament_choice-1]}")
 
@@ -788,7 +748,7 @@ def plot_agents_agents(Tournaments: list, tournament_msg: str, Maps: list, map_m
     map_msg : str
         String containing all available maps, numbered.
     session : session.Session"""
-    # TODO ADD SPECIFIC TOURNAMENT
+
     title = choice_check("Choose Plot Focus\n" +
                          "a) Map\n" +
                          "b) Tournament\n" +
@@ -797,79 +757,36 @@ def plot_agents_agents(Tournaments: list, tournament_msg: str, Maps: list, map_m
     if title == "a":   # Title=Map
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
-        agents = session.query(Agent).where(Agent.map == Maps[map_choice-1]).\
-            order_by(Agent.agent).all()
-        y = []
-        x = []
-        y_num = 0
-        y_den = 0
-        curr_agent = ""
-        if independent == "a":
-            pre = 2
-        else:
-            pre = 1
-        for agent in agents:
-            if curr_agent == "":
-                curr_agent = agent.agent
-            elif agent.agent != curr_agent:
-                y.append([100*divide(y_num, pre*y_den)])
-                x.append(curr_agent)
-                y_num = 0
-                y_den = 0
-                curr_agent = agent.agent
-            if independent == "a":  # y=Pickrate
-                y_num += agent.games
-                y_den += agent.map_ref.games
-                label = "Pickrate"
-            elif independent == "b":  # y=Winrate
-                y_num += agent.wins
-                y_den += agent.games
-                label = "Winrate"
-            elif independent == "c":  # y=Rating
-                y_num += agent.wins
-                y_den += agent.map_ref.games
-                label = "Rating"
-        x.append(agent.agent)
-        y.append([100*divide(y_num, pre*y_den)])
+        agents = session.query(Agent).\
+            where((Agent.tournament == "Overall") &
+                  (Agent.map == Maps[map_choice-1])).order_by(Agent.agent).all()
+        x = [agent.agent for agent in agents]
+        if independent == "a":  # y=Pickrate
+            y = [[100 * divide(agent.games, 2*agent.map_ref.games)] for agent in agents]
+            label = "Pickrate"
+        elif independent == "b":  # y=Winrate
+            y = [[100 * divide(agent.wins, agent.games)] for agent in agents]
+            label = "Winrate"
+        elif independent == "c":  # y=Rating
+            y = [[100 * divide(agent.wins, agent.map_ref.games)] for agent in agents]
+            label = "Rating"
         plotter(x, y, label, Maps[map_choice-1])
 
     elif title == "b":   # Title=Tournament
         tournament_choice = int(choice_check("What Agent do you want to view?\n" +
                                              tournament_msg, np.arange(1, len(Tournaments)+1)))
-        agents = session.query(Agent).where(
-            Agent.tournament == Tournaments[tournament_choice-1]).order_by(Agent.agent).all()
-        y = []
-        x = []
-        y_num = 0
-        y_den = 0
-        curr_agent = ""
-        if independent == "a":
-            pre = 2
-        else:
-            pre = 1
-        for agent in agents:
-            if curr_agent == "":
-                curr_agent = agent.agent
-            elif agent.agent != curr_agent:
-                y.append([100*divide(y_num, pre*y_den)])
-                x.append(curr_agent)
-                y_num = 0
-                y_den = 0
-                curr_agent = agent.agent
-            if independent == "a":  # y=Pickrate
-                y_num += agent.games
-                y_den += agent.map_ref.games
-                label = "Pickrate"
-            elif independent == "b":  # y=Winrate
-                y_num += agent.wins
-                y_den += agent.games
-                label = "Winrate"
-            elif independent == "c":  # y=Rating
-                y_num += agent.wins
-                y_den += agent.map_ref.games
-                label = "Rating"
-        x.append(agent.agent)
-        y.append([100*divide(y_num, pre*y_den)])
+        agents = session.query(Agent).where((Agent.tournament == Tournaments[tournament_choice-1]) &
+                                            (Agent.map == "")).order_by(Agent.agent).all()
+        x = [agent.agent for agent in agents]
+        if independent == "a":  # y=Pickrate
+            y = [[100 * divide(agent.games, 2*agent.tournament_ref.games)] for agent in agents]
+            label = "Pickrate"
+        elif independent == "b":  # y=Winrate
+            y = [[100 * divide(agent.wins, agent.games)] for agent in agents]
+            label = "Winrate"
+        elif independent == "c":  # y=Rating
+            y = [[100 * divide(agent.wins, agent.tournament_ref.games)] for agent in agents]
+            label = "Rating"
         plotter(x, y, label, Tournaments[tournament_choice-1])
 
     elif title == "c":  # Title=MapOnTournament
@@ -879,8 +796,8 @@ def plot_agents_agents(Tournaments: list, tournament_msg: str, Maps: list, map_m
                                              f"{Maps[map_choice-1]} on?\n" + tournament_msg,
                                              np.arange(1, len(Tournaments)+1)))
         agents = session.query(Agent).where(
-            (Agent.map == Maps[map_choice-1]) &
-            (Agent.tournament == Tournaments[tournament_choice-1])).all()
+            (Agent.tournament == Tournaments[tournament_choice-1]) &
+            (Agent.map == Maps[map_choice-1])).all()
         x = [agent.agent for agent in agents]
         if independent == "a":  # y=Pickrate
             y = [[100 * divide(agent.games, 2*agent.map_ref.games)] for agent in agents]
@@ -954,19 +871,23 @@ def plot_teams_tournaments(Maps: list, map_msg: str, Teams: list, team_msg: str,
                          "b) Team\n" +
                          "c) Team on a Given Map\n",
                          ["a", "b", "c"])
+
     if title == "a":  # Title=Map
-        map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
-                                      np.arange(1, len(Maps)+1)))
         team_choice = int_input("How Many Teams Should Be Shown In Plots? (Default is 3)\n" +
                                 "Note: If this number is too large no data will be shown")
-        tournaments = session.query(Map).where(Map.map == Maps[map_choice-1]).all()
+        map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
+                                      np.arange(1, len(Maps)+1)))
+        tournaments = session.query(Map).where((Map.tournament != "Overall") &
+                                               (Map.map == Maps[map_choice-1])).all()
         labels = []
         y = []
         x = []
         for tournament in tournaments:
+            team_search = session.query(Team).where((Team.tournament == tournament.tournament) &
+                                                    (Team.map == tournament.map))
+            # TODO Work out team rating/pickrate
             if independent == "a":  # y=Matches
-                teams = session.query(Team).where(Team.map_id == tournament.id).\
-                    order_by(Team.games.desc()).all()
+                teams = team_search.order_by(Team.games.desc()).all()
                 teams = teams[:team_choice]
                 y_ = [team.games for team in teams]
                 label = "Matches"
@@ -992,39 +913,18 @@ def plot_teams_tournaments(Maps: list, map_msg: str, Teams: list, team_msg: str,
     elif title == "b":  # Title=Team
         team_choice = int(choice_check("What team do you want to view?\n" + team_msg,
                                        np.arange(1, len(Teams)+1)))
-        tournaments = session.query(Team).where(Team.team == Teams[team_choice-1]).all()
-        y = []
-        x = []
-        y_num = 0
-        y_den = 0
-        curr_tour = ""
-        for tournament in tournaments:
-            if curr_tour == "":
-                curr_tour = tournament.tournament
-            elif tournament.tournament != curr_tour:
-                if independent == "c":
-                    y.append([100*divide(y_num, y_den)])
-                else:
-                    y.append([y_num])
-                x.append(curr_tour)
-                y_num = 0
-                y_den = 0
-                curr_tour = tournament.tournament
-            if independent == "a":  # y=Matches
-                y_num += tournament.games
-                label = "Matches"
-            elif independent == "b":  # y=Wins
-                y_num += tournament.wins
-                label = "Wins"
-            elif independent == "c":  # y=Winrate
-                y_num += tournament.wins
-                y_den += tournament.games
-                label = "Winrate"
-        x.append(tournament.tournament)
-        if independent == "c":
-            y.append([100*divide(y_num, y_den)])
-        else:
-            y.append([y_num])
+        teams = session.query(Team).where((Team.map == "") &
+                                          (Team.team == Teams[team_choice-1])).all()
+        x = [team.tournament for team in teams]
+        if independent == "a":  # y=Matches
+            y = [[team.games] for team in teams]
+            label = "Matches"
+        elif independent == "b":  # y=Wins
+            y = [[team.wins] for team in teams]
+            label = "Wins"
+        elif independent == "c":  # y=Winrate
+            y = [[100 * divide(team.wins, team.games)] for team in teams]
+            label = "Winrate"
         plotter(x, y, label, Teams[team_choice-1])
 
     elif title == "c":  # Title=TeamOnMap
@@ -1068,34 +968,30 @@ def plot_teams_maps(Tournaments: list, tournament_msg: str, Teams: list, team_ms
                          "b) Team\n" +
                          "c) Team on a Given Map\n",
                          ["a", "b", "c"])
-    if title == "a":  # T itle=Tournament
-        tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
-                                             tournament_msg, np.arange(1, len(Tournaments)+1)))
+    if title == "a":  # Title=Tournament
         team_choice = int_input("How Many Teams Should Be Shown In Plots? (Default is 3)\n" +
                                 "Note: If this number is too large no data will be shown")
+        tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
+                                             tournament_msg, np.arange(1, len(Tournaments)+1)))
         maps = session.query(Map).where(Map.tournament == Tournaments[tournament_choice-1]).all()
         labels = []
         y = []
         x = []
         for map in maps:
+            team_search = session.query(Team).where((Team.tournament == map.tournament) &
+                                                    (Team.map == map.map))
             if independent == "a":  # y=Matches
-                teams = session.query(Team).where(
-                    Team.tournament == Tournaments[tournament_choice-1]).\
-                        order_by(Team.games.desc()).all()
+                teams = team_search.order_by(Team.games.desc()).all()
                 teams = teams[:team_choice]
                 y_ = [team.games for team in teams]
                 label = "Matches"
             elif independent == "b":  # y=Wins
-                teams = session.query(Team).where(
-                    Team.tournament == Tournaments[tournament_choice-1]).\
-                        order_by(Team.wins.desc()).all()
+                teams = team_search.order_by(Team.wins.desc()).all()
                 teams = teams[:team_choice]
                 y_ = [team.wins for team in teams]
                 label = "Wins"
             elif independent == "c":  # y=Winrate
-                teams = session.query(Team).where(
-                    Team.tournament == Tournaments[tournament_choice-1]).\
-                        order_by(Team.wins.desc()).all()
+                teams = team_search.order_by(Team.wins.desc()).all()
                 teams = teams[:team_choice]
                 y_ = [100 * divide(team.wins, team.games) for team in teams]
                 label = "Winrate"
@@ -1104,44 +1000,25 @@ def plot_teams_maps(Tournaments: list, tournament_msg: str, Teams: list, team_ms
             y.append(y_)
             labels.append([team.team for team in teams])
             x.append(map.map)
-        plotter(x, y, label, Tournaments[tournament_choice-1], labels, team_choice)
+        plotter(x, y, label, Tournaments[tournament_choice-1], labels, n=team_choice)
 
     elif title == "b":  # Title=Team
         team_choice = int(choice_check("What team do you want to view?\n" + team_msg,
                                        np.arange(1, len(Teams)+1)))
-        maps = session.query(Team).where(Team.team == Teams[team_choice-1]).order_by(Team.map).all()
-        y = []
-        x = []
-        y_num = 0
-        y_den = 0
-        curr_map = ""
-        for map in maps:
-            if curr_map == "":
-                curr_map = map.map
-            elif map.map != curr_map:
-                if independent == "c":
-                    y.append([100*divide(y_num, y_den)])
-                else:
-                    y.append([y_num])
-                x.append(curr_map)
-                y_num = 0
-                y_den = 0
-                curr_map = map.map
-            if independent == "a":  # y=Matches
-                y_num += map.games
-                label = "Matches"
-            elif independent == "b":  # y=Wins
-                y_num += map.wins
-                label = "Wins"
-            elif independent == "c":  # y=Winrate
-                y_num += map.wins
-                y_den += map.games
-                label = "Winrate"
-        x.append(map.map)
-        if independent == "c":
-            y.append([100*divide(y_num, y_den)])
-        else:
-            y.append([y_num])
+        teams = session.query(Team).\
+            where((Team.tournament == "Overall") &
+                  (Team.map != "") &
+                  (Team.team == Teams[team_choice-1])).order_by(Team.map).all()
+        x = [team.map for team in teams]
+        if independent == "a":  # y=Matches
+            y = [[team.games] for team in teams]
+            label = "Matches"
+        elif independent == "b":  # y=Wins
+            y = [[team.wins] for team in teams]
+            label = "Wins"
+        elif independent == "c":  # y=Winrate
+            y = [[100 * divide(team.wins, team.games)] for team in teams]
+            label = "Winrate"
         plotter(x, y, label, Teams[team_choice-1])
 
     elif title == "c":  # Title=teamOnTournament
@@ -1150,18 +1027,19 @@ def plot_teams_maps(Tournaments: list, tournament_msg: str, Teams: list, team_ms
         tournament_choice = int(choice_check("What Tournament do you want to view " +
                                              f"{Teams[team_choice-1]} on?\n" + tournament_msg,
                                              np.arange(1, len(Tournaments)+1)))
-        maps = session.query(Team).\
-            where((Team.team == Teams[team_choice-1]),
-                  (Team.tournament == Tournaments[tournament_choice-1])).all()
-        x = [map.map for map in maps]
+        teams = session.query(Team).\
+            where((Team.tournament == Tournaments[tournament_choice-1]) &
+                  (Team.map != "") &
+                  (Team.team == Teams[team_choice-1])).all()
+        x = [team.map for team in teams]
         if independent == "a":  # y=Matches
-            y = [[map.games] for map in maps]
+            y = [[team.games] for team in teams]
             label = "Matches"
         elif independent == "b":  # y=Wins
-            y = [[map.wins] for map in maps]
+            y = [[team.wins] for team in teams]
             label = "Wins"
         elif independent == "c":  # y=Winrate
-            y = [[100 * divide(map.wins, map.games)] for map in maps]
+            y = [[100 * divide(team.wins, team.games)] for team in teams]
             label = "Winrate"
         plotter(x, y, label, f"{Teams[team_choice-1]} on {Tournaments[tournament_choice-1]}")
 
@@ -1190,78 +1068,37 @@ def plot_teams_teams(Tournaments: list, tournament_msg: str, Maps: list, map_msg
     if title == "a":  # Title=Map
         map_choice = int(choice_check("What Team do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
-        teams = session.query(Team).where(Team.map == Maps[map_choice-1]).order_by(Team.team).all()
-        y = []
-        x = []
-        y_num = 0
-        y_den = 0
-        curr_team = ""
-        for team in teams:
-            if curr_team == "":
-                curr_team = team.team
-            elif team.team != curr_team:
-                if independent == "c":
-                    y.append([100*divide(y_num, y_den)])
-                else:
-                    y.append([y_num])
-                x.append(curr_team)
-                y_num = 0
-                y_den = 0
-                curr_team = team.team
-            if independent == "a":  # y=Matches
-                y_num += team.games
-                label = "Matches"
-            elif independent == "b":  # y=Wins
-                y_num += team.wins
-                label = "Wins"
-            elif independent == "c":  # y=Winrate
-                y_num += team.wins
-                y_den += team.games
-                label = "Winrate"
-        x.append(team.team)
-        if independent == "c":
-            y.append([100*divide(y_num, y_den)])
-        else:
-            y.append([y_num])
+        teams = session.query(Team).\
+            where((Team.tournament == "Overall") &
+                  (Team.map == Maps[map_choice-1])).order_by(Team.agent).all()
+        x = [team.team for team in teams]
+        if independent == "a":  # y=Matches
+            y = [[team.games] for team in teams]
+            label = "Matches"
+        elif independent == "b":  # y=Wins
+            y = [[team.wins] for team in teams]
+            label = "Wins"
+        elif independent == "c":  # y=Winrate
+            y = [[100 * divide(team.wins, team.games)] for team in teams]
+            label = "Winrate"
         plotter(x, y, label, Maps[map_choice-1])
 
     elif title == "b":  # Title=Tournament
         tournament_choice = int(choice_check("What Team do you want to view?\n" + tournament_msg,
                                              np.arange(1, len(Tournaments)+1)))
-        teams = session.query(Team).where(
-            Team.tournament == Tournaments[tournament_choice-1]).order_by(Team.team).all()
-        y = []
-        x = []
-        y_num = 0
-        y_den = 0
-        curr_team = ""
-        for team in teams:
-            if curr_team == "":
-                curr_team = team.team
-            elif team.team != curr_team:
-                if independent == "c":
-                    y.append([100*divide(y_num, y_den)])
-                else:
-                    y.append([y_num])
-                x.append(curr_team)
-                y_num = 0
-                y_den = 0
-                curr_team = team.team
-            if independent == "a":  # y=Matches
-                y_num += team.games
-                label = "Matches"
-            elif independent == "b":  # y=Wins
-                y_num += team.wins
-                label = "Wins"
-            elif independent == "c":  # y=Winrate
-                y_num += team.wins
-                y_den += team.games
-                label = "Winrate"
-        x.append(team.team)
-        if independent == "c":
-            y.append([100*divide(y_num, y_den)])
-        else:
-            y.append([y_num])
+        teams = session.query(Team).where((Team.tournament == Tournaments[tournament_choice-1]) &
+                                          (Team.map == "")).order_by(Team.agent).all()
+        x = [team.team for team in teams]
+        if independent == "a":  # y=Matches
+            y = [[team.games] for team in teams]
+            label = "Matches"
+        elif independent == "b":  # y=Wins
+            y = [[team.wins] for team in teams]
+            label = "Wins"
+        elif independent == "c":  # y=Winrate
+            y = [[100 * divide(team.wins, team.games)] for team in teams]
+            label = "Winrate"
+        plotter(x, y, label, Maps[map_choice-1])
         plotter(x, y, label, Tournaments[tournament_choice-1])
 
     elif title == "c":  # Title=MapOnTournament
@@ -1334,33 +1171,25 @@ def data_viewer(session):
     session"""
 
     # creates options of all tournaments
-    Tournaments = []
-    for tournament in session.query(Tournament):
-        Tournaments.append(tournament.id)
+    Tournaments = [tournament.tournament for tournament in session.query(Tournament)]
     tournament_msg = ""
     for n, tournament in enumerate(Tournaments):
         tournament_msg += str(n+1) + ") " + tournament + "\n"
 
     # creates options of all maps
-    Maps = []
-    for map in session.query(Map.map).distinct():
-        Maps.append(map.map)
+    Maps = [map.map for map in session.query(Map.map).distinct()]
     map_msg = ""
     for n, map in enumerate(Maps):
         map_msg += str(n+1) + ") " + map + "\n"
 
     # creates options of all teams
-    Agents = []
-    for agent in session.query(Agent.agent).distinct():
-        Agents.append(agent.agent)
+    Agents = [agent.agent for agent in session.query(Agent.agent).distinct()]
     agent_msg = ""
     for n, agent in enumerate(Agents):
         agent_msg += str(n+1) + ") " + agent + "\n"
 
     # creates options of all teams
-    Teams = []
-    for team in session.query(Team.team).distinct():
-        Teams.append(team.team)
+    Teams = [team.team for team in session.query(Team.team).distinct()]
     team_msg = ""
     for n, team in enumerate(Teams):
         team_msg += str(n+1) + ") " + team + "\n"

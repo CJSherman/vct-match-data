@@ -12,7 +12,7 @@ def new_game_map(match: Match, session):
     session"""
 
     specific_map = match.map_ref
-    ovr_map = session.query(Map).where((Map.tournament == "") &
+    ovr_map = session.query(Map).where((Map.tournament == "Overall") &
                                        (Map.map == specific_map.map)).first()
     maps = [specific_map, ovr_map]
     for map in maps:
@@ -35,13 +35,13 @@ def new_game_agent(team: list[Agent], result: int, session):
 
     for agent in team:
         specific_agent = agent
-        map_agent = session.query(Agent).where((Agent.tournament == "") &
+        map_agent = session.query(Agent).where((Agent.tournament == "Overall") &
                                                (Agent.map == agent.map) &
                                                (Agent.agent == agent.agent)).first()
         tour_agent = session.query(Agent).where((Agent.tournament == agent.tournament) &
                                                 (Agent.map == "") &
                                                 (Agent.agent == agent.agent)).first()
-        ovr_agent = session.query(Agent).where((Agent.tournament == "") &
+        ovr_agent = session.query(Agent).where((Agent.tournament == "Overall") &
                                                (Agent.map == "") &
                                                (Agent.agent == agent.agent)).first()
         agents = [specific_agent, map_agent, tour_agent, ovr_agent]
@@ -98,6 +98,29 @@ def new_game_comp(match: Match, result: int, session):
                                          (Comp.agent_3 == team[0][2].agent) &
                                          (Comp.agent_4 == team[0][3].agent) &
                                          (Comp.agent_5 == team[0][4].agent)).first()
+        ovr_comp = session.query(Comp).where((Comp.tournament == "Overall") &
+                                             (Comp.map == match.map) &
+                                             (Comp.agent_1 == team[0][0].agent) &
+                                             (Comp.agent_2 == team[0][1].agent) &
+                                             (Comp.agent_3 == team[0][2].agent) &
+                                             (Comp.agent_4 == team[0][3].agent) &
+                                             (Comp.agent_5 == team[0][4].agent)).first()
+        if ovr_comp:
+            ovr_comp.games += 1
+            ovr_comp.wins += result
+        else:
+            new_ovr = Comp(tournament="Overall",
+                           map=match.map,
+                           agent_1=team[0][0].agent,
+                           agent_2=team[0][1].agent,
+                           agent_3=team[0][2].agent,
+                           agent_4=team[0][3].agent,
+                           agent_5=team[0][4].agent,
+                           games=1,
+                           wins=result,
+                           ref=team[1][1])
+            session.add(new_ovr)
+
         # if comp already has an entry, update it
         if comp:
             comp.games += 1
@@ -144,13 +167,13 @@ def new_game_team(match: Match, result: int, session):
     # updates team
     for team in teams:
         specific_team = team
-        map_team = session.query(Team).where((Team.tournament == "") &
+        map_team = session.query(Team).where((Team.tournament == "Overall") &
                                              (Team.map == team.map) &
                                              (Team.team == team.team)).first()
         tour_team = session.query(Team).where((Team.tournament == team.tournament) &
                                               (Team.map == "") &
                                               (Team.team == team.team)).first()
-        ovr_team = session.query(Team).where((Team.tournament == "") &
+        ovr_team = session.query(Team).where((Team.tournament == "Overall") &
                                              (Team.map == "") &
                                              (Team.team == team.team)).first()
         teams_ = [specific_team, map_team, tour_team, ovr_team]
