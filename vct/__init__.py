@@ -24,6 +24,31 @@ def setup(tournament: Tournament, session: session.Session):
     teams = tournament.team_pool.split()
     tournament = tournament.tournament
 
+    ovr_map = Map(tournament=tournament,
+                  map="Overall",
+                  games=0,
+                  ct_wins=0,
+                  t_wins=0)
+    session.add(ovr_map)
+
+    for agent in agents:
+        ovr_agent = Agent(tournament=tournament,
+                          map="Overall",
+                          agent=agent,
+                          games=0,
+                          wins=0)
+        session.add(ovr_agent)
+
+    for team in teams:
+        ovr_team = Team(tournament=tournament,
+                        map="Overall",
+                        team=team,
+                        games=0,
+                        wins=0)
+        session.add(ovr_team)
+
+    session.commit()
+
     for map in maps:
         map_row = Map(tournament=tournament,
                       map=map,
@@ -47,24 +72,6 @@ def setup(tournament: Tournament, session: session.Session):
                             games=0,
                             wins=0)
             session.add(team_row)
-
-    for agent in agents:
-        ovr_agent = Agent(tournament=tournament,
-                          map="",
-                          agent=agent,
-                          games=0,
-                          wins=0)
-        session.add(ovr_agent)
-
-    for team in teams:
-        ovr_team = Team(tournament=tournament,
-                        map="",
-                        team=team,
-                        games=0,
-                        wins=0)
-        session.add(ovr_team)
-
-    session.commit()
 
 
 # reloads all match data

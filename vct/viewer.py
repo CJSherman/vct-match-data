@@ -38,8 +38,8 @@ def view_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_
                                              tournament_msg,
                                              np.arange(1, len(Tournaments)+1)))
         # list of maps that were played in the chosen tournament
-        maps = session.query(Map).where(Map.tournament == Tournaments[tournament_choice-1]).\
-            order_by(Map.games.desc()).all()
+        maps = session.query(Map).where((Map.tournament == Tournaments[tournament_choice-1]) &
+                                        (Map.map != "Overall")).order_by(Map.games.desc()).all()
         output = "Map{:7s}Picks{:>5s}Pickrate{:>2s}Sidedness\n".format("", "", "")
         for map in maps:
             pickrate = divide(map.games, map.tournament_ref.games)
@@ -51,7 +51,8 @@ def view_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
         # list of map objects that were of the chosen map
-        maps = session.query(Map).where(Map.map == Maps[map_choice-1]).all()
+        maps = session.query(Map).where((Map.tournament != "Overall") &
+                                        (Map.map == Maps[map_choice-1])).all()
         output = "Tournament{:10s}Pickrate{:>2s}Sidedness\n".format("", "")
         for map in maps:
             pickrate = divide(map.games, map.tournament_ref.games)
@@ -94,11 +95,11 @@ def view_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
         # object of the chosen map
-        map = session.query(Map).where((Map.map == Maps[map_choice-1]) &
-                                       (Map.tournament == Tournaments[tournament_choice-1])).first()
+        map = session.query(Map).where((Map.tournament == Tournaments[tournament_choice-1]) &
+                                       (Map.map == Maps[map_choice-1])).first()
         # list of comps played in the chosen tournament on the chosen map
-        comps = session.query(Comp).where((Comp.map == Maps[map_choice-1]) &
-                                          (Comp.tournament == Tournaments[tournament_choice-1])).\
+        comps = session.query(Comp).where((Comp.tournament == Tournaments[tournament_choice-1]) &
+                                          (Comp.map == Maps[map_choice-1])).\
             order_by((Comp.wins/map.games).desc()).all()
 
         output = "{:<50s}Pickrate{:<2s}Winrate{:<3s}Rating\n".format("", "", "")
@@ -115,13 +116,8 @@ def view_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
                                              tournament_msg,
                                              np.arange(1, len(Tournaments)+1)))
         # list of comps played in the chosen tournament
-        Comps_list = [f"{comp.agent_1_ref.agent_ref.abbreviation} " +
-                      f"{comp.agent_2_ref.agent_ref.abbreviation} " +
-                      f"{comp.agent_3_ref.agent_ref.abbreviation} " +
-                      f"{comp.agent_4_ref.agent_ref.abbreviation} " +
-                      f"{comp.agent_5_ref.agent_ref.abbreviation}"
-                      for comp in session.query(Comp).where(
-                        Comp.tournament == Tournaments[tournament_choice-1]).all()]
+        Comps_list = [comp.ref for comp in session.query(Comp).where(
+            Comp.tournament == Tournaments[tournament_choice-1]).all()]
         Comps = list(set(Comps_list))
         Comps = sorted(Comps, key=Counter(Comps_list).get, reverse=True)
         comp_msg = ""
@@ -132,7 +128,7 @@ def view_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
         # list comp objects of the chosen comp and tournament
         comps = session.query(Comp).where(
             (Comp.tournament == Tournaments[tournament_choice-1]) &
-            (Comp.ref == Comps[comp_choice-1])).order_by(Comp.wins/Comp.games).all()
+            (Comp.ref == Comps[comp_choice-1])).order_by((Comp.wins/Comp.games).desc()).all()
         output = "Map{:7s}Pickrate{:<2s}Winrate{:<3s}Rating\n".format("", "", "")
         for comp in comps:
             pickrate = divide(comp.games, 2*comp.map_ref.games)
@@ -145,12 +141,8 @@ def view_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
         # list of comps played on the chosen map
-        Comps_list = [f"{comp.agent_1_ref.agent_ref.abbreviation} " +
-                      f"{comp.agent_2_ref.agent_ref.abbreviation} " +
-                      f"{comp.agent_3_ref.agent_ref.abbreviation} " +
-                      f"{comp.agent_4_ref.agent_ref.abbreviation} " +
-                      f"{comp.agent_5_ref.agent_ref.abbreviation}"
-                      for comp in session.query(Comp).where(Comp.map == Maps[map_choice-1]).all()]
+        Comps_list = [comp.ref for comp in session.query(Comp).where(
+            Comp.map == Maps[map_choice-1]).all()]
         Comps = list(set(Comps_list))
         Comps = sorted(Comps, key=Counter(Comps_list).get, reverse=True)
         comp_msg = ""
@@ -160,7 +152,9 @@ def view_comps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
                                        np.arange(1, len(Comps)+1)))
         # list of comp objects of the chosen comp and map
         comps = session.query(Comp).where(
-            (Comp.map == Maps[map_choice-1]) & (Comp.ref == Comps[comp_choice-1])).all()
+            (Comp.tournament != "Overall") &
+            (Comp.map == Maps[map_choice-1]) &
+            (Comp.ref == Comps[comp_choice-1])).all()
         output = "Tournament{:10s}Pickrate{:<2s}Winrate{:<3s}Rating\n".format("", "", "")
         for comp in comps:
             pickrate = divide(comp.games, 2*comp.map_ref.games)
@@ -206,12 +200,12 @@ def view_agents(Tournaments: list[str], tournament_msg: str, Maps: list[str], ma
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
         # object of the chosen map
-        map = session.query(Map).where(
-            Map.id == (Tournaments[tournament_choice-1] + Maps[map_choice-1])).first()
+        map = session.query(Map).where((Map.tournament == Tournaments[tournament_choice-1]) &
+                                       (Map.map == Maps[map_choice-1])).first()
         # list of agents played in the chosen tournament on the chosen map
         agents = session.query(Agent).where(
-            Agent.map_id == (Tournaments[tournament_choice-1] + Maps[map_choice-1])).\
-            order_by((Agent.wins/map.games).desc()).all()
+            (Agent.tournament == Tournaments[tournament_choice-1]) &
+            (Agent.map == Maps[map_choice-1])).order_by((Agent.wins/map.games).desc()).all()
         output = "Agent{:7s}Pickrate{:3s}Winrate{:4s}Rating\n".format("", "", "")
         for agent in agents:
             pickrate = divide(agent.games, 2*agent.map_ref.games)
@@ -229,6 +223,7 @@ def view_agents(Tournaments: list[str], tournament_msg: str, Maps: list[str], ma
         # list of agent objects of the chosen agent and tournament
         agents = session.query(Agent).where(
             (Agent.tournament == Tournaments[tournament_choice-1]) &
+            (Agent.map != "") &
             (Agent.agent == Agents[agent_choice-1])).order_by((Agent.wins/Agent.games).desc()).all()
         output = "Map{:7s}Pickrate{:<2s}Winrate{:<3s}Rating\n".format("", "", "")
         for agent in agents:
@@ -239,13 +234,15 @@ def view_agents(Tournaments: list[str], tournament_msg: str, Maps: list[str], ma
                 agent.map, 100*pickrate, 100*winrate, rating)
 
     elif tournaments_maps_or_agents == "c":  # tournaments
-        map_choice = int(choice_check("What Tournament do you want to view?\n" + map_msg,
+        map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
         agent_choice = int(choice_check("What Agent do you want to view?\n" + agent_msg,
                                         np.arange(1, len(Agents)+1)))
         # list of agent objects of the chosen agent and map
         agents = session.query(Agent).where(
-            (Agent.map == Maps[map_choice-1]) & (Agent.agent == Agents[agent_choice-1])).all()
+            (Agent.tournament != "Overall") &
+            (Agent.map == Maps[map_choice-1]) &
+            (Agent.agent == Agents[agent_choice-1])).all()
         output = "Tournament{:10s}Pickrate{:<2s}Winrate{:<3s}Rating\n".format("", "", "")
         for agent in agents:
             pickrate = divide(agent.games, 2*agent.map_ref.games)
@@ -292,11 +289,12 @@ def view_teams(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
                                       np.arange(1, len(Maps)+1)))
         # object of the chosen map
         map = session.query(Map).where(
-            Map.id == (Tournaments[tournament_choice-1] + Maps[map_choice-1])).first()
+            (Map.tournament == Tournaments[tournament_choice-1]) &
+            (Map.map == Maps[map_choice-1])).first()
         # list of teams in the chosen tournament on the chosen map
         teams = session.query(Team).where(
-            Team.map_id == (Tournaments[tournament_choice-1] + Maps[map_choice-1])).\
-            order_by((Team.wins/map.games).desc()).all()
+            (Team.tournament == (Tournaments[tournament_choice-1])) &
+            (Team.map == Maps[map_choice-1])).order_by((Team.wins/map.games).desc()).all()
         output = "Team{:9s}Matches{:3s}Winrate{:4s}Rating\n".format("", "", "")
         for team in teams:
             pickrate = divide(team.games, 2*team.map_ref.games)
@@ -314,6 +312,7 @@ def view_teams(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
         # list of team objects of the chosen team and tournament
         teams = session.query(Team).where(
             (Team.tournament == Tournaments[tournament_choice-1]) &
+            (Team.map != "") &
             (Team.team == Teams[team_choice-1])).order_by((Team.wins/Team.games).desc()).all()
         output = "Map{:7s}Pickrate{:<2s}Winrate{:<3s}Rating\n".format("", "", "")
         for team in teams:
@@ -330,7 +329,9 @@ def view_teams(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
                                        np.arange(1, len(Teams)+1)))
         # list of team objects of the chosen team and map
         teams = session.query(Team).where(
-            (Team.map == Maps[map_choice-1]) & (Team.team == Teams[team_choice-1])).all()
+            (Team.tournament != "Overall") &
+            (Team.map == Maps[map_choice-1]) & 
+            (Team.team == Teams[team_choice-1])).all()
         output = "Tournament{:10s}Pickrate{:<2s}Winrate{:<3s}Rating\n".format("", "", "")
         for team in teams:
             pickrate = divide(team.games, 2*team.map_ref.games)
@@ -1177,19 +1178,20 @@ def data_viewer(session):
         tournament_msg += str(n+1) + ") " + tournament + "\n"
 
     # creates options of all maps
-    Maps = [map.map for map in session.query(Map.map).distinct()]
+    Maps = [map.map for map in session.query(Map).where(Map.tournament == "Overall").all()]
     map_msg = ""
     for n, map in enumerate(Maps):
         map_msg += str(n+1) + ") " + map + "\n"
 
     # creates options of all teams
-    Agents = [agent.agent for agent in session.query(Agent.agent).distinct()]
+    Agents = [agent.agent
+              for agent in session.query(Agent).where(Map.tournament == "Overall").all()]
     agent_msg = ""
     for n, agent in enumerate(Agents):
         agent_msg += str(n+1) + ") " + agent + "\n"
 
     # creates options of all teams
-    Teams = [team.team for team in session.query(Team.team).distinct()]
+    Teams = [team.team for team in session.query(Team).where(Map.tournament == "Overall").all()]
     team_msg = ""
     for n, team in enumerate(Teams):
         team_msg += str(n+1) + ") " + team + "\n"

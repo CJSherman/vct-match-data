@@ -1,4 +1,4 @@
-from .databases import Comp, Match, Agent, Map, Team
+from .databases import Comp, Match, Agent, Map, Team, Tournament
 
 
 # adjusts map data from a new map
@@ -12,9 +12,14 @@ def new_game_map(match: Match, session):
     session"""
 
     specific_map = match.map_ref
+    ovr = session.query(Map).where((Map.tournament == "Overall") &
+                                   (Map.map == "Overall")).first()
     ovr_map = session.query(Map).where((Map.tournament == "Overall") &
                                        (Map.map == specific_map.map)).first()
-    maps = [specific_map, ovr_map]
+    ovr_tour = session.query(Map).where((Map.tournament == match.tournament) &
+                                        (Map.map == "Overall")).first()
+
+    maps = [specific_map, ovr, ovr_map, ovr_tour]
     for map in maps:
         map.games += 1
         map.ct_wins += match.team_1_half + match.team_2_half_2
@@ -39,10 +44,10 @@ def new_game_agent(team: list[Agent], result: int, session):
                                                (Agent.map == agent.map) &
                                                (Agent.agent == agent.agent)).first()
         tour_agent = session.query(Agent).where((Agent.tournament == agent.tournament) &
-                                                (Agent.map == "") &
+                                                (Agent.map == "Overall") &
                                                 (Agent.agent == agent.agent)).first()
         ovr_agent = session.query(Agent).where((Agent.tournament == "Overall") &
-                                               (Agent.map == "") &
+                                               (Agent.map == "Overall") &
                                                (Agent.agent == agent.agent)).first()
         agents = [specific_agent, map_agent, tour_agent, ovr_agent]
         for agent_ in agents:
@@ -171,10 +176,10 @@ def new_game_team(match: Match, result: int, session):
                                              (Team.map == team.map) &
                                              (Team.team == team.team)).first()
         tour_team = session.query(Team).where((Team.tournament == team.tournament) &
-                                              (Team.map == "") &
+                                              (Team.map == "Overall") &
                                               (Team.team == team.team)).first()
         ovr_team = session.query(Team).where((Team.tournament == "Overall") &
-                                             (Team.map == "") &
+                                             (Team.map == "Overall") &
                                              (Team.team == team.team)).first()
         teams_ = [specific_team, map_team, tour_team, ovr_team]
         for team_ in teams_:
@@ -198,7 +203,8 @@ def new_game_tournament(match: Match, session):
     match : Match
         The Match object for the new Match.
     session"""
-
+    ovr = session.query(Tournament).where(Tournament.tournament == "Overall").first()
+    ovr.games += 1
     match.tournament_ref.games += 1
     session.commit()
 
