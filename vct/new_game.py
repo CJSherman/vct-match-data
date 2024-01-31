@@ -1,4 +1,4 @@
-from .databases import Comp, Match, Agent, Map, Team, Tournament
+from .databases import Agent, Comp, Map, Match, Team, Tournament
 
 
 # adjusts map data from a new map
@@ -208,6 +208,7 @@ def new_game_tournament(match: Match, session):
     match : Match
         The Match object for the new Match.
     session"""
+
     ovr = session.query(Tournament).where(Tournament.tournament == "Overall").first()
     ovr.games += 1
     match.tournament_ref.games += 1
@@ -223,6 +224,7 @@ def new_game(match: Match, result: int, session):
         The Match object for the new Match.
     result : int
         Int showing which team won."""
+
     new_game_tournament(match, session)
     new_game_map(match, session)
     new_game_comp(match, result, session)

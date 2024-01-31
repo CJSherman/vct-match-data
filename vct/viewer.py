@@ -365,7 +365,7 @@ def view_teams(Tournaments: list[str], tournament_msg: str, Maps: list[str], map
                 (Team.team == Teams[team_choice-1])).first()
             pickrate = divide(team.games, team_ovr.games)
             winrate = divide(team.wins, team.games)
-            rating = 100 * pickrate * winrate
+            rating = pickrate * winrate * 100
             output += "{:<20s}{:>7.2f}%{:>8.2f}%{:>9.0f}\n".format(
                 team.tournament, 100*pickrate, 100*winrate, rating)
 
@@ -393,7 +393,7 @@ def plotter(x: list, y: list, label: str, title: str, labels: list[str] = None, 
     plt.figure(figsize=(20, 10))
     if label == "Sidedness":
         plt.ylim(-50, 50)
-        plt.plot(x_axis, np.zeros(len(x_axis)), "k-")
+        plt.axline(xy1=(0, 0), slope=0, color="k")
     elif label in ["Matches", "Wins"]:
         pass
     else:
