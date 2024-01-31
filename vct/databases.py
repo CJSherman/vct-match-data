@@ -19,6 +19,7 @@ class Referall(base):
     __tablename__ = "referall"
 
     name: Mapped[str] = mapped_column(primary_key=True)
+
     abbreviation: Mapped[str] = mapped_column(unique=True)
     type: Mapped[str]
 

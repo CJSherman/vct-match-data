@@ -192,8 +192,6 @@ def new_game_team(match: Match, result: int, session):
         for team_ in teams_:
             team_.games += 1
             team_.wins += result
-        team.games += 1
-        team.wins += result
 
         # swaps result for the other team
         result = (result + 1) % 2
