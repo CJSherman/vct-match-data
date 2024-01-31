@@ -438,8 +438,8 @@ def plot_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_
     if dependent == "a":  # x=Tournaments
         map_choice = int(choice_check("What Map do you want to view?\n" + map_msg,
                                       np.arange(1, len(Maps)+1)))
-        maps = session.query(Map).where((Map.map == Maps[map_choice-1]) &
-                                        (Map.tournament != "Overall")).all()
+        maps = session.query(Map).where((Map.tournament != "Overall") &
+                                        (Map.map == Maps[map_choice-1])).all()
 
         x = [map.tournament for map in maps]
         if independent == "a":  # y=Pickrate
@@ -453,7 +453,8 @@ def plot_maps(Tournaments: list[str], tournament_msg: str, Maps: list[str], map_
 
     elif dependent == "b":  # x=Maps
         tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
-                                             tournament_msg, np.arange(1, len(Tournaments)+1)))
+                                             tournament_msg, 
+                                             np.arange(1, len(Tournaments)+1)))
         maps = session.query(Map).where((Map.tournament == Tournaments[tournament_choice-1]) &
                                         (Map.map != "Overall")).all()
 
@@ -681,7 +682,8 @@ def plot_agents_tournaments(Maps: list, map_msg: str, Agents: list, agent_msg: s
         agent_choice = int(choice_check("What Agent do you want to view?\n" + agent_msg,
                                         np.arange(1, len(Agents)+1)))
         map_choice = int(choice_check(f"What Map do you want to view {Agents[agent_choice-1]} on?\n"
-                                      + map_msg, np.arange(1, len(Maps)+1)))
+                                      + map_msg, 
+                                      np.arange(1, len(Maps)+1)))
         agents = session.query(Agent).where((Agent.tournament != "Overall") &
                                             (Agent.map == Maps[map_choice-1]) &
                                             (Agent.agent == Agents[agent_choice-1])).all()
@@ -724,7 +726,8 @@ def plot_agents_maps(Tournaments: list, tournament_msg: str, Agents: list, agent
         agent_choice = int_input("How Many Agents Should Be Shown In Plots? (Default is 5)\n" +
                                  "Note: If this number is too large no data will be shown")
         tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
-                                             tournament_msg, np.arange(1, len(Tournaments)+1)))
+                                             tournament_msg, 
+                                             np.arange(1, len(Tournaments)+1)))
         maps = session.query(Map).where((Map.tournament == Tournaments[tournament_choice-1]) &
                                         (Map.map != "Overall")).all()
         labels = []
@@ -837,7 +840,8 @@ def plot_agents_agents(Tournaments: list, tournament_msg: str, Maps: list, map_m
 
     elif title == "b":   # Title=Tournament
         tournament_choice = int(choice_check("What Agent do you want to view?\n" +
-                                             tournament_msg, np.arange(1, len(Tournaments)+1)))
+                                             tournament_msg, 
+                                             np.arange(1, len(Tournaments)+1)))
         agents = session.query(Agent).where((Agent.tournament == Tournaments[tournament_choice-1]) &
                                             (Agent.map == "Overall")).all()
         x = [agent.agent for agent in agents]
@@ -995,7 +999,8 @@ def plot_teams_tournaments(Maps: list, map_msg: str, Teams: list, team_msg: str,
         team_choice = int(choice_check("What team do you want to view?\n" + team_msg,
                                        np.arange(1, len(Teams)+1)))
         map_choice = int(choice_check(f"What Map do you want to view {Teams[team_choice-1]} on?\n" +
-                                      map_msg, np.arange(1, len(Maps)+1)))
+                                      map_msg, 
+                                      np.arange(1, len(Maps)+1)))
         tournaments = session.query(Team).where((Team.tournament != "Overall") &
                                                 (Team.team == Teams[team_choice-1]) &
                                                 (Team.map == Maps[map_choice-1])).all()
@@ -1038,7 +1043,8 @@ def plot_teams_maps(Tournaments: list, tournament_msg: str, Teams: list, team_ms
         team_choice = int_input("How Many Teams Should Be Shown In Plots? (Default is 3)\n" +
                                 "Note: If this number is too large no data will be shown")
         tournament_choice = int(choice_check("What Tournament do you want to view?\n" +
-                                             tournament_msg, np.arange(1, len(Tournaments)+1)))
+                                             tournament_msg, 
+                                             np.arange(1, len(Tournaments)+1)))
         maps = session.query(Map).where(Map.tournament == Tournaments[tournament_choice-1]).all()
         labels = []
         y = []
