@@ -145,6 +145,9 @@ def new_tournament(session: session.Session) -> str:
 
     while True:
         agent_pool = input("Enter the Tournaments Agent Pool: ").upper()
+        if agent_pool == "ALL":
+            all_agents = session.query(Referall).where(Referall.type == "AGENT").all()
+            agent_pool = " ".join([agents.name for agents in all_agents])
         confirm = choice_check("Confirm This is the Agent Pool: " + agent_pool + " (y/n) ",
                                ["y", "n"])
         if confirm == "y":
@@ -157,14 +160,15 @@ def new_tournament(session: session.Session) -> str:
         if confirm == "y":
             break
 
-    tournament = Tournament(id=tournament_name,
+    tournament = Tournament(tournament=tournament_name,
+                            games=0,
                             map_pool=map_pool,
                             agent_pool=agent_pool,
                             team_pool=team_pool)
     session.add(tournament)
     session.commit()
 
-    setup(tournament)
+    setup(tournament, session)
 
     return tournament_name
 
@@ -195,14 +199,14 @@ def select_tournament(session: session.Session) -> Tournament:
         tournament_msg = ""
         tournaments = session.query(Tournament).all()
         for n, tournament in enumerate(tournaments):
-            tournament_msg += str(n+1) + ") " + tournament.id + "\n"
+            tournament_msg += str(n+1) + ") " + tournament.tournament + "\n"
 
         tournament_id = int(choice_check("Which tournament do you want to open?\n" +
                                          tournament_msg,
                                          np.arange(1, len(tournaments)+1)))
-        tournament_name = tournaments[tournament_id-1].id
+        tournament_name = tournaments[tournament_id-1].tournament
 
-    tournament = session.query(Tournament).filter_by(id=tournament_name).first()
+    tournament = session.query(Tournament).filter_by(tournament=tournament_name).first()
 
     return tournament
 
@@ -235,7 +239,6 @@ def data_add(tournament: Tournament, session: session.Session):
         # checks the map is in the tournament
         map = data_check("Enter a Valid Map for " + datasplit[0] +
                          ":\n", maps, datasplit[0].upper())
-        map = [map, tournament.id + map]
 
         # checks the team is in the tournament
         team1 = data_check("Enter a valid team for " + datasplit[1] +
@@ -256,10 +259,10 @@ def data_add(tournament: Tournament, session: session.Session):
             team1score = int_input((team1 + "'s Score"), score[0])
             team2score = int_input((team2 + "'s Score"), score[1])
         team1half = int_input((team1 + "'s Score at Half Time"), datasplit[3])
-        team2half = 12-team1half
+        team2half = 12 - team1half
         while team1half < 0 or team1half > 12 or team1half > team1score or team2half > team2score:
             team1half = int_input(team1 + "'s Score at Half Time")
-            team2half = 12-team1half
+            team2half = 12 - team1half
         if team1score+team2score <= 24:
             team1half2 = team1score - team1half
             team2half2 = team2score - team2half
@@ -276,7 +279,6 @@ def data_add(tournament: Tournament, session: session.Session):
             agent = data_check("Enter a valid agent for " + agent + "\n", team1_agents, agent)
             team1comp[n] = agent
             team1_agents.remove(agent)
-        team1comp.append(map[1] + "".join(team1comp))
 
         team2_agents = agents.copy()
         team2comp = datasplit[-5:]
@@ -286,11 +288,10 @@ def data_add(tournament: Tournament, session: session.Session):
             agent = data_check("Enter a valid agent for " + agent + "\n", team2_agents, agent)
             team2comp[n] = agent
             team2_agents.remove(agent)
-        team2comp.append(map[1] + "".join(team2comp))
 
         # adds match to matches table
-        match = Match(tournament=tournament.id,
-                      map=map[0],
+        match = Match(tournament=tournament.tournament,
+                      map=map,
                       team_1=team[0],
                       team_2=team[1],
                       team_1_score=score[0],
@@ -299,31 +300,16 @@ def data_add(tournament: Tournament, session: session.Session):
                       team_2_half=score[3],
                       team_1_half_2=score[4],
                       team_2_half_2=score[4],
-                      team_1_pick_1=team1comp[0],
-                      team_1_pick_2=team1comp[1],
-                      team_1_pick_3=team1comp[2],
-                      team_1_pick_4=team1comp[3],
-                      team_1_pick_5=team1comp[4],
-                      team_2_pick_1=team2comp[0],
-                      team_2_pick_2=team2comp[1],
-                      team_2_pick_3=team2comp[2],
-                      team_2_pick_4=team2comp[3],
-                      team_2_pick_5=team2comp[4],
-                      map_id=map[1],
-                      team_1_id=map[1]+team[0],
-                      team_2_id=map[1]+team[1],
-                      team_1_agent_1_id=map[1]+team1comp[0],
-                      team_1_agent_2_id=map[1]+team1comp[1],
-                      team_1_agent_3_id=map[1]+team1comp[2],
-                      team_1_agent_4_id=map[1]+team1comp[3],
-                      team_1_agent_5_id=map[1]+team1comp[4],
-                      team_2_agent_1_id=map[1]+team2comp[0],
-                      team_2_agent_2_id=map[1]+team2comp[1],
-                      team_2_agent_3_id=map[1]+team2comp[2],
-                      team_2_agent_4_id=map[1]+team2comp[3],
-                      team_2_agent_5_id=map[1]+team2comp[4],
-                      team_1_comp_id=team1comp[5],
-                      team_2_comp_id=team2comp[5])
+                      team_1_agent_1=team1comp[0],
+                      team_1_agent_2=team1comp[1],
+                      team_1_agent_3=team1comp[2],
+                      team_1_agent_4=team1comp[3],
+                      team_1_agent_5=team1comp[4],
+                      team_2_agent_1=team2comp[0],
+                      team_2_agent_2=team2comp[1],
+                      team_2_agent_3=team2comp[2],
+                      team_2_agent_4=team2comp[3],
+                      team_2_agent_5=team2comp[4])
         session.add(match)
         session.commit()
 
