@@ -1,3 +1,7 @@
+from sqlalchemy import create_engine
+from . import databases
+
+
 # checks if a choice was an acceptable option
 def choice_check(question: str, options: list[str | int]) -> str:
     """Function to check if an input is in a given set.
@@ -89,3 +93,25 @@ def divide(numerator: int, denominator: int, offset=0) -> float:
     except ZeroDivisionError:
         result = 0
     return result
+
+
+# Creates a new database with a given name
+def create_database(name, session, split=" "):
+    engine = create_engine(f"sqlite:///{name}.db", echo=True)
+    databases.base.metadata.create_all(bind=engine)
+    tournaments = [tournament.tournament for tournament in session.query(databases.Tournament)]
+    if "Overall" not in tournaments:
+        maps = split.join([referall.name for referall in session.query(databases.Referall).where(
+            databases.Referall.type == "MAP")])
+        agents = split.join([referall.name for referall in session.query(databases.Referall).where(
+            databases.Referall.type == "AGENT")])
+        teams = split.join([referall.name for referall in session.query(databases.Referall).where(
+            databases.Referall.type == "TEAM")])
+
+        tournament = databases.Tournament(tournament="Overall",
+                                          games=0,
+                                          map_pool=maps,
+                                          agent_pool=agents,
+                                          team_pool=teams)
+        session.add(tournament)
+        session.commit()

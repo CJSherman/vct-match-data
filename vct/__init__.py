@@ -10,7 +10,7 @@ from .viewer import data_viewer
 
 
 # creates the initial maps, agents and teams tables
-def setup(tournament: Tournament, session: session.Session):
+def setup(tournament: Tournament, session: session.Session, split=" "):
     """Function to create all the required fields in the databases for a new tournament.
 
     Parameter
@@ -19,9 +19,9 @@ def setup(tournament: Tournament, session: session.Session):
         The database the contains base information of the tournament to be created.
     session : session.Session"""
 
-    maps = tournament.map_pool.split()
-    agents = tournament.agent_pool.split()
-    teams = tournament.team_pool.split()
+    maps = tournament.map_pool.split(split)
+    agents = tournament.agent_pool.split(split)
+    teams = tournament.team_pool.split(split)
     tournament = tournament.tournament
 
     ovr_map = Map(tournament=tournament,
@@ -99,11 +99,24 @@ def data_refresh(session: session.Session):
 
     session.commit()
 
+    split = input("What are the items split by?\n")
+    if split == "":
+        split = " "
+
     # creates entries in each table for each tournament
     tournaments = session.query(Tournament).all()
     for tournament in tournaments:
+
+        if tournament.tournament == "Overall":
+            tournament.map_pool = split.join([referall.name for referall in session.query(
+                Referall).where(Referall.type == "MAP")])
+            tournament.agent_pool = split.join([referall.name for referall in session.query(
+                Referall).where(Referall.type == "AGENT")])
+            tournament.team_pool = split.join([referall.name for referall in session.query(
+                Referall).where(Referall.type == "TEAM")])
+            session.commit()
         tournament.games = 0
-        setup(tournament, session)
+        setup(tournament, session, split)
 
     # adds all existing match data
     matches = session.query(Match).all()
@@ -273,21 +286,21 @@ def data_add(tournament: Tournament, session: session.Session):
         # makes sure each agent is real and the comps are possible
         team1_agents = agents.copy()
         team1comp = datasplit[-10:-5]
-        team1comp.sort()
         team1comp = [agent.upper() for agent in team1comp]
         for n, agent in enumerate(team1comp):
             agent = data_check("Enter a valid agent for " + agent + "\n", team1_agents, agent)
             team1comp[n] = agent
             team1_agents.remove(agent)
+        team1comp.sort()
 
         team2_agents = agents.copy()
         team2comp = datasplit[-5:]
-        team2comp.sort()
         team2comp = [agent.upper() for agent in team2comp]
         for n, agent in enumerate(team2comp):
             agent = data_check("Enter a valid agent for " + agent + "\n", team2_agents, agent)
             team2comp[n] = agent
             team2_agents.remove(agent)
+        team2comp.sort()
 
         # adds match to matches table
         match = Match(tournament=tournament.tournament,
@@ -354,7 +367,7 @@ def game_loop(database: str):
         The name of the database file where all data is stored."""
 
     while True:
-        engine = create_engine(f"sqlite:///{database}.db", echo=True)
+        engine = create_engine(f"sqlite:///{database}.db")
         Session = sessionmaker(bind=engine)
         session = Session()
 
