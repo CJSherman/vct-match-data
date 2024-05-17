@@ -1,5 +1,7 @@
 from sqlalchemy import create_engine
-from . import databases
+from sqlalchemy.orm import session
+
+from .databases import Tournament, Map, Agent, Team, Referall, base
 
 
 # checks if a choice was an acceptable option
@@ -98,20 +100,85 @@ def divide(numerator: int, denominator: int, offset=0) -> float:
 # Creates a new database with a given name
 def create_database(name, session):
     engine = create_engine(f"sqlite:///{name}.db", echo=True)
-    databases.base.metadata.create_all(bind=engine)
-    tournaments = [tournament.tournament for tournament in session.query(databases.Tournament)]
+    base.metadata.create_all(bind=engine)
+    tournaments = [tournament.tournament for tournament in session.query(Tournament)]
     if "Overall" not in tournaments:
-        maps = " - ".join([referall.name for referall in session.query(databases.Referall).where(
-            databases.Referall.type == "MAP")])
-        agents = " - ".join([referall.name for referall in session.query(databases.Referall).where(
-            databases.Referall.type == "AGENT")])
-        teams = " - ".join([referall.name for referall in session.query(databases.Referall).where(
-            databases.Referall.type == "TEAM")])
+        maps = " - ".join([referall.name for referall in session.query(Referall).where(
+            Referall.type == "MAP")])
+        agents = " - ".join([referall.name for referall in session.query(Referall).where(
+            Referall.type == "AGENT")])
+        teams = " - ".join([referall.name for referall in session.query(Referall).where(
+            Referall.type == "TEAM")])
 
-        tournament = databases.Tournament(tournament="Overall",
-                                          games=0,
-                                          map_pool=maps,
-                                          agent_pool=agents,
-                                          team_pool=teams)
+        tournament = Tournament(tournament="Overall",
+                                games=0,
+                                map_pool=maps,
+                                agent_pool=agents,
+                                team_pool=teams)
         session.add(tournament)
         session.commit()
+
+
+# creates the initial maps, agents and teams tables
+def setup(tournament: Tournament, session: session.Session):
+    """Function to create all the required fields in the databases for a new tournament.
+
+    Parameter
+    ---------
+    tournament : Tournament
+        The database the contains base information of the tournament to be created.
+    session : session.Session"""
+
+    maps = tournament.map_pool.split(" - ")
+    agents = tournament.agent_pool.split(" - ")
+    teams = tournament.team_pool.split(" - ")
+    tournament = tournament.tournament
+
+    ovr_map = Map(tournament=tournament,
+                  map="Overall",
+                  games=0,
+                  ct_wins=0,
+                  t_wins=0)
+    session.add(ovr_map)
+
+    for agent in agents:
+        ovr_agent = Agent(tournament=tournament,
+                          map="Overall",
+                          agent=agent,
+                          games=0,
+                          wins=0)
+        session.add(ovr_agent)
+
+    for team in teams:
+        ovr_team = Team(tournament=tournament,
+                        map="Overall",
+                        team=team,
+                        games=0,
+                        wins=0)
+        session.add(ovr_team)
+
+    for map in maps:
+        map_row = Map(tournament=tournament,
+                      map=map,
+                      games=0,
+                      ct_wins=0,
+                      t_wins=0)
+        session.add(map_row)
+
+        for agent in agents:
+            agent_row = Agent(tournament=tournament,
+                              map=map,
+                              agent=agent,
+                              games=0,
+                              wins=0)
+            session.add(agent_row)
+
+        for team in teams:
+            team_row = Team(tournament=tournament,
+                            map=map,
+                            team=team,
+                            games=0,
+                            wins=0)
+            session.add(team_row)
+
+    session.commit()

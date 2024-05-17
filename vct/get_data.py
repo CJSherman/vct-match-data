@@ -5,7 +5,7 @@ import re
 import copy
 
 from .databases import Match, Tournament, Referall
-from . import setup
+from .functions import setup
 
 
 class VLRScrape:
