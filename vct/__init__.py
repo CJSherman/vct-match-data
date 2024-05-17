@@ -7,10 +7,11 @@ from .databases import Tournament, Map, Agent, Comp, Team, Match, Referall
 from .functions import data_check, choice_check, int_input
 from .new_game import new_game
 from .viewer import data_viewer
+from .get_data import VLRScrape
 
 
 # creates the initial maps, agents and teams tables
-def setup(tournament: Tournament, session: session.Session, split=" "):
+def setup(tournament: Tournament, session: session.Session):
     """Function to create all the required fields in the databases for a new tournament.
 
     Parameter
@@ -19,9 +20,9 @@ def setup(tournament: Tournament, session: session.Session, split=" "):
         The database the contains base information of the tournament to be created.
     session : session.Session"""
 
-    maps = tournament.map_pool.split(split)
-    agents = tournament.agent_pool.split(split)
-    teams = tournament.team_pool.split(split)
+    maps = tournament.map_pool.split(" - ")
+    agents = tournament.agent_pool.split(" - ")
+    teams = tournament.team_pool.split(" - ")
     tournament = tournament.tournament
 
     ovr_map = Map(tournament=tournament,
@@ -99,24 +100,20 @@ def data_refresh(session: session.Session):
 
     session.commit()
 
-    split = input("What are the items split by?\n")
-    if split == "":
-        split = " "
-
     # creates entries in each table for each tournament
     tournaments = session.query(Tournament).all()
     for tournament in tournaments:
 
         if tournament.tournament == "Overall":
-            tournament.map_pool = split.join([referall.name for referall in session.query(
+            tournament.map_pool = " - ".join([referall.name for referall in session.query(
                 Referall).where(Referall.type == "MAP")])
-            tournament.agent_pool = split.join([referall.name for referall in session.query(
+            tournament.agent_pool = " - ".join([referall.name for referall in session.query(
                 Referall).where(Referall.type == "AGENT")])
-            tournament.team_pool = split.join([referall.name for referall in session.query(
+            tournament.team_pool = " - ".join([referall.name for referall in session.query(
                 Referall).where(Referall.type == "TEAM")])
             session.commit()
         tournament.games = 0
-        setup(tournament, session, split)
+        setup(tournament, session)
 
     # adds all existing match data
     matches = session.query(Match).all()
@@ -357,6 +354,29 @@ def add_referall(type: str, session: session.Session):
     session.close()
 
 
+def vlr_scraper(session):
+    scraper = VLRScrape(session)
+    while True:
+        url = input("Enter the URL to be scraped")
+        split_url = url.split("/")
+        if split_url[2] == "www.vlr.gg":
+            if split_url[3] == "event":
+                scraper.add_tournaments(url)
+            else:
+                scraper.add_matches(url)
+        else:
+            print("INVALID URL: Must be a www.vlr.gg url")
+
+        done = choice_check("Would you like to do anything else? (y/n) ",
+                            ["y", "n"])
+        if done == "n":
+            break
+    scraper.find_match_pages()
+    scraper.find_match_data()
+    left_matches = "\n".join(scraper.match_urls)
+    print(f"The following matches were not scraped:\n {left_matches}")
+
+
 # loops options until not needed
 def game_loop(database: str):
     """Main Function loop to call required destinations.
@@ -379,21 +399,11 @@ def game_loop(database: str):
 
         if task == "a":  # add new data
             while True:
-                match_or_agent = choice_check("What do you want to add?\n" +
-                                              "a) A new VCT Match\n" +
-                                              "b) A new Map\n" +
-                                              "c) A new Agent\n" +
-                                              "d) A new Team\n",
-                                              ["a", "b", "c", "d"])
-                if match_or_agent == "a":
-                    tournament = select_tournament(session)
-                    data_add(tournament, session)
-                elif match_or_agent == "b":
-                    add_referall("MAP", session)
-                elif match_or_agent == "c":
-                    add_referall("AGENT", session)
-                elif match_or_agent == "d":
-                    add_referall("TEAM", session)
+                website = choice_check("Where do you want to scrape from?\n" +
+                                       "a) VLR.gg\n",
+                                       ["a"])
+                if website == "a":
+                    vlr_scraper(session)
 
                 done = choice_check("Would you like to add something else? (y/n) ",
                                     ["y", "n"])
