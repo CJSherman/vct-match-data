@@ -96,16 +96,16 @@ def divide(numerator: int, denominator: int, offset=0) -> float:
 
 
 # Creates a new database with a given name
-def create_database(name, session, split=" "):
+def create_database(name, session):
     engine = create_engine(f"sqlite:///{name}.db", echo=True)
     databases.base.metadata.create_all(bind=engine)
     tournaments = [tournament.tournament for tournament in session.query(databases.Tournament)]
     if "Overall" not in tournaments:
-        maps = split.join([referall.name for referall in session.query(databases.Referall).where(
+        maps = " - ".join([referall.name for referall in session.query(databases.Referall).where(
             databases.Referall.type == "MAP")])
-        agents = split.join([referall.name for referall in session.query(databases.Referall).where(
+        agents = " - ".join([referall.name for referall in session.query(databases.Referall).where(
             databases.Referall.type == "AGENT")])
-        teams = split.join([referall.name for referall in session.query(databases.Referall).where(
+        teams = " - ".join([referall.name for referall in session.query(databases.Referall).where(
             databases.Referall.type == "TEAM")])
 
         tournament = databases.Tournament(tournament="Overall",
