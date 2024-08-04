@@ -1,6 +1,6 @@
-import os
 import customtkinter as ctk
 
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -12,7 +12,7 @@ ctk.set_default_color_theme("dark-blue")
 
 database: str = "VCT"
 
-path = fr"sqlite:///{os.getcwd()}\{database}.db"
+path = fr"sqlite:///{str(Path(__file__).parents[1])}/{database}.db"
 engine = create_engine(path)
 Session = sessionmaker(bind=engine)
 session = Session()
