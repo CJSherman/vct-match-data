@@ -1,3 +1,6 @@
-__pycache__
-TODO
 .vscode
+TODO
+vct_data.egg-info
+**/__pycache__
+**.db
+**.pickle
