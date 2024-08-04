@@ -1,6 +1,6 @@
 .vscode
 TODO
-vct_data.egg-info
+vct_match_data.egg-info
 **/__pycache__
 **.db
 **.pickle
