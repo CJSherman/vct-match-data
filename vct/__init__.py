@@ -1,6 +1,6 @@
 import numpy as np
 
-from sqlalchemy.orm import sessionmaker, session
+from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy import create_engine
 
 from .databases import Tournament, Map, Agent, Comp, Team, Match, Referall
@@ -10,16 +10,16 @@ from .viewer import data_viewer
 from .get_data import VLRScrape
 
 
-# reloads all match data
-def data_refresh(session: session.Session):
-    """Function to clear the current processed data and re-enter the data into databases. This is
+def data_refresh(session: Session) -> None:
+    """
+    Function to clear the current processed data and re-enter the data into databases. This is
     useful for if changes to how data is processed are made.
 
     Parameters
     ----------
-    session : session.Session"""
+    session : Session
+    """
 
-    # clears existing tables
     maps = session.query(Map).all()
     for map in maps:
         session.delete(map)
@@ -35,7 +35,6 @@ def data_refresh(session: session.Session):
 
     session.commit()
 
-    # creates entries in each table for each tournament
     tournaments = session.query(Tournament).all()
     for tournament in tournaments:
 
@@ -50,7 +49,6 @@ def data_refresh(session: session.Session):
         tournament.games = 0
         setup(tournament, session)
 
-    # adds all existing match data
     matches = session.query(Match).all()
     for match in matches:
         result = 0
@@ -60,18 +58,19 @@ def data_refresh(session: session.Session):
         new_game(match, result, session)
 
 
-# creates a new entry in the tournaments table and accompaning records for maps, agents and teams
-def new_tournament(session: session.Session) -> str:
-    """Function to take the input of the base information for a new tournament.
+def new_tournament(session: Session) -> str:
+    """
+    Function to take the input of the base information for a new tournament.
 
     Parameters
     ----------
-    session : session.Session
+    session : Session
 
     Returns
     -------
     str
-        The name of the created tournament."""
+        The name of the created tournament.
+    """
 
     while True:
         tournament_name = input("Enter the Tournament Name: ")
@@ -118,19 +117,20 @@ def new_tournament(session: session.Session) -> str:
     return tournament_name
 
 
-# selects the tournament for which to add data
-def select_tournament(session: session.Session) -> Tournament:
-    """Function to select which tournament data should be added to, allows options to choose an
+def select_tournament(session: Session) -> Tournament:
+    """
+    Function to select which tournament data should be added to, allows options to choose an
     existing tournament or to create a new tournament.
 
     Parameters
     ----------
-    session : session.Session
+    session : Session
 
     Returns
     -------
     Tournament
-        The object of the chosen tournament."""
+        The object of the chosen tournament.
+    """
 
     choice = choice_check("Select Option:\n" +
                           "a) Create new tournament database\n" +
@@ -156,16 +156,17 @@ def select_tournament(session: session.Session) -> Tournament:
     return tournament
 
 
-# enters new match data to match table
-def data_add(tournament: Tournament, session: session.Session):
-    """Function to enter data for a new tournament match. Cleans data and makes sure it fits the
+def data_add(tournament: Tournament, session: Session) -> None:
+    """
+    Function to enter data for a new tournament match. Cleans data and makes sure it fits the
     correct format
 
     Parameters
     ----------
     tournament : Tournament
         The object of the tournament the entered match belongs to.
-    session : session.Session"""
+    session : Session
+    """
 
     maps = tournament.map_pool.split()
     agents = tournament.agent_pool.split()
@@ -175,24 +176,20 @@ def data_add(tournament: Tournament, session: session.Session):
         while True:
             data = input("Enter Match Information:\n")
             datasplit = data.split()
-            # ensures right amount of data is given
             if len(datasplit) == 16:
                 break
             else:
                 print("Please Enter Data in Correct Format")
 
-        # checks the map is in the tournament
         map = data_check("Enter a Valid Map for " + datasplit[0] +
                          ":\n", maps, datasplit[0].upper())
 
-        # checks the team is in the tournament
         team1 = data_check("Enter a valid team for " + datasplit[1] +
                            ":\n", teams, datasplit[1].upper())
         team2 = data_check("Enter a valid team for " + datasplit[5] +
                            ":\n", teams, datasplit[5].upper())
         team = [team1, team2]
 
-        # checks the score is possible
         team1score = int_input((team1 + "'s Score"), datasplit[2])
         team2score = int_input((team2 + "'s Score"), datasplit[4])
         while (team1score < 0 or team2score < 0 or not
@@ -215,7 +212,6 @@ def data_add(tournament: Tournament, session: session.Session):
             team1half2, team2half2 = team2half, team1half
         score = [team1score, team2score, team1half, team2half, team1half2, team2half2]
 
-        # makes sure each agent is real and the comps are possible
         team1_agents = agents.copy()
         team1comp = datasplit[-10:-5]
         team1comp = [agent.upper() for agent in team1comp]
@@ -234,7 +230,6 @@ def data_add(tournament: Tournament, session: session.Session):
             team2_agents.remove(agent)
         team2comp.sort()
 
-        # adds match to matches table
         match = Match(tournament=tournament.tournament,
                       map=map,
                       team_1=team[0],
@@ -258,12 +253,10 @@ def data_add(tournament: Tournament, session: session.Session):
         session.add(match)
         session.commit()
 
-        # calculates the result for team 1
         result = 0
         if match.team_1_score > match.team_2_score:
             result = 1
 
-        # updates all tables
         new_game(match, result, session)
 
         done = choice_check("Are you still adding data? (y/n)\n", ["y", "n"])
@@ -271,12 +264,14 @@ def data_add(tournament: Tournament, session: session.Session):
             break
 
 
-def add_referall(type: str, session: session.Session):
-    """Function to add a new map, agent or team to the Referall table.
+def add_referall(type: str, session: Session) -> None:
+    """
+    Function to add a new map, agent or team to the Referall table.
     Parameters
     ----------
     type : {"MAP", "AGENT", "TEAM"}
-    session : session.Session"""
+    session : Session
+    """
 
     name = input(f"Enter {type.title()} Name: ").upper()
     short = input(f"Enter Abbreviation for {name.title()}: ").upper()
@@ -289,7 +284,7 @@ def add_referall(type: str, session: session.Session):
     session.close()
 
 
-def vlr_scraper(session):
+def vlr_scraper(session) -> None:
     scraper = VLRScrape(session)
     while True:
         url = input("Enter the URL to be scraped")
@@ -314,14 +309,15 @@ def vlr_scraper(session):
     print(f"The following matches were not scraped:\n {left_matches}")
 
 
-# loops options until not needed
-def game_loop(database: str):
-    """Main Function loop to call required destinations.
+def game_loop(database: str) -> None:
+    """
+    Main Function loop to call required destinations.
 
     Parameters
     ----------
     database : str
-        The name of the database file where all data is stored."""
+        The name of the database file where all data is stored.
+    """
 
     while True:
         engine = create_engine(f"sqlite:///{database}.db")

@@ -1,5 +1,5 @@
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, ResultSet
 import datetime
 import re
 import copy
@@ -24,12 +24,12 @@ class VLRScrape:
 
     def __init__(self, session: Session, tournament_urls: Optional[list[str]] = None,
                  match_urls: Optional[list[str]] = None):
-        """Scraper class for obtaining match data from vlr.gg.
+        """
+        Scraper class for obtaining match data from vlr.gg.
 
         Parameters
         ----------
         session : Session
-            session used to search the database.
         tournament_urls : Optional[list[str]], default: None
             List of urls to be scanned.
         match_urls : Optional[list[str]], default None
@@ -44,7 +44,7 @@ class VLRScrape:
         self.session = session
 
     @property
-    def scanned_matches(self):
+    def scanned_matches(self) -> list:
         try:
             with open("ScannedMatches.pickle", "rb") as file:
                 matches = pickle.load(file)
@@ -54,44 +54,44 @@ class VLRScrape:
         return matches
 
     @property
-    def existing_tournaments(self):
+    def existing_tournaments(self) -> dict:
         return dict([(tournament.tournament, tournament)
                      for tournament in self.session.query(Tournament).all()])
 
     @property
-    def existing_agents(self):
+    def existing_agents(self) -> list:
         return [referall.name
                 for referall in self.session.query(Referall).where(Referall.type == "AGENT")]
 
     @property
-    def existing_maps(self):
+    def existing_maps(self) -> list:
         return [referall.name
                 for referall in self.session.query(Referall).where(Referall.type == "MAP")]
 
     @property
-    def existing_teams(self):
+    def existing_teams(self) -> list:
         return [referall.name
                 for referall in self.session.query(Referall).where(Referall.type == "TEAM")]
 
-    def add_tournaments(self, tournaments: list | str):
+    def add_tournaments(self, tournaments: list | str) -> None:
         if isinstance(tournaments, str):
             self.tournament_urls.append(tournaments)
         elif isinstance(tournaments, list):
             self.tournament_urls += tournaments
 
-    def add_matches(self, matches: list | str):
+    def add_matches(self, matches: list | str) -> None:
         if isinstance(matches, str):
             self.match_urls.append(matches)
         elif isinstance(matches, list):
             self.match_urls += matches
 
-    def find_match_pages(self):
+    def find_match_pages(self) -> None:
         urls = copy.copy(self.tournament_urls)
         for url in urls:
             self._find_match_pages(url)
             self.tournament_urls.remove(url)
 
-    def _find_match_pages(self, url):
+    def _find_match_pages(self, url: str) -> None:
         new_url = url.split("/")
         new_url.insert(4, "matches")
         matches_url = "/".join(new_url) + "/?series=all"
@@ -103,14 +103,14 @@ class VLRScrape:
                                 != "Showmatch") and (match.find("div", class_="ml-status").text
                                 == "Completed"))]
 
-    def find_match_data(self):
+    def find_match_data(self) -> None:
         urls = copy.copy(self.match_urls)
         for url in urls:
             scanned = self._find_match_data(url)
             if scanned:
                 self.match_urls.remove(url)
 
-    def _find_match_data(self, url):
+    def _find_match_data(self, url: str) -> bool:
         scanned_matches = self.scanned_matches
         code = url.split("/")[3]
         if code not in scanned_matches:
@@ -134,7 +134,7 @@ class VLRScrape:
             print("Match already scanned.")
             return True
 
-    def _find_map_data(self, soup, tournament):
+    def _find_map_data(self, soup: ResultSet, tournament) -> None:
         tournament_obj = self.existing_tournaments[tournament]
         map_name = soup.find("div", class_="map").text.split("\t")[7].upper()
         if map_name not in tournament_obj.map_pool:
@@ -200,7 +200,7 @@ class VLRScrape:
         self.session.add(match)
         self.session.commit()
 
-    def create_tournament(self, soup, tournament):
+    def create_tournament(self, soup: ResultSet, tournament: str) -> None:
         tournament_link = soup.find("a", class_="match-header-event")["href"].split("/")[:3]
         tournament_link.insert(2, "agents")
         url = self.base + "/".join(tournament_link)
@@ -248,7 +248,7 @@ class VLRScrape:
 
         setup(tournament_obj, self.session)
 
-    def scrape(self, url):
+    def scrape(self, url: str) -> ResultSet:
         print(f"Scraping: {url}")
         while datetime.datetime.now() - self.last_scrape < datetime.timedelta(seconds=60):
             pass
@@ -259,17 +259,17 @@ class VLRScrape:
         return soup
 
     @classmethod
-    def update_last_scrape(cls):
+    def update_last_scrape(cls) -> None:
         cls.last_scrape = datetime.datetime.now()
 
-    def create_new_map(self, map):
+    def create_new_map(self, map: str) -> None:
         referall = Referall(name=map,
                             abbreviation=map,
                             type="MAP")
         self.session.add(referall)
         self.session.commit()
 
-    def create_new_agent(self, agent):
+    def create_new_agent(self, agent: str) -> None:
         ref = input(f"Enter Abbreviation for {agent}: ").upper()
         referall = Referall(name=agent,
                             abbreviation=ref,
@@ -277,7 +277,7 @@ class VLRScrape:
         self.session.add(referall)
         self.session.commit()
 
-    def create_new_team(self, team):
+    def create_new_team(self, team: str) -> None:
         ref = input(f"Enter Abbreviation for {team}: ").upper()
         referall = Referall(name=team,
                             abbreviation=ref,

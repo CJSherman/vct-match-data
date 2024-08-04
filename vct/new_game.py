@@ -1,15 +1,18 @@
+from sqlalchemy.orm import Session
+
 from .databases import Agent, Comp, Map, Match, Team, Tournament
 
 
-# adjusts map data from a new map
-def new_game_map(match: Match, session):
-    """Function to Update the Map Table from data in a new Match.
+def new_game_map(match: Match, session: Session) -> None:
+    """
+    Function to Update the Map Table from data in a new Match.
 
     Parameters
     ----------
     match : Match
         The Match object to update the table from.
-    session"""
+    session : Session
+    """
 
     specific_map = match.map_ref
     ovr = session.query(Map).where((Map.tournament == "Overall") &
@@ -28,15 +31,18 @@ def new_game_map(match: Match, session):
     session.commit()
 
 
-def new_game_agent(team: list[Agent], result: int, session):
-    """Function to Update the Agent Table from data in a new Match.
+def new_game_agent(team: list[Agent], result: int, session: Session) -> None:
+    """
+    Function to Update the Agent Table from data in a new Match.
 
     Paramaters
     ----------
     team : list[Agent]
         The Agents on a given team.
     result : int
-        Int showing whether the team won."""
+        Int showing whether the team won.
+    session : Session
+    """
 
     for agent in team:
         specific_agent = agent
@@ -55,9 +61,9 @@ def new_game_agent(team: list[Agent], result: int, session):
             agent_.wins += result
 
 
-# adjusts agent and comp data from a new map
-def new_game_comp(match: Match, result: int, session):
-    """Function to Update the Comp Table from data in a new Match.
+def new_game_comp(match: Match, result: int, session: Session) -> None:
+    """
+    Function to Update the Comp Table from data in a new Match.
 
     Parameters
     ----------
@@ -65,7 +71,8 @@ def new_game_comp(match: Match, result: int, session):
         The match object for the new match.
     result : int
         Int showing which team won.
-    session"""
+    session : Session
+    """
 
     team_1 = [[match.team_1_agent_1_ref,
                match.team_1_agent_2_ref,
@@ -155,15 +162,14 @@ def new_game_comp(match: Match, result: int, session):
 
         new_game_agent(team[0], result, session)
 
-        # swaps result for the other team
         result = (result + 1) % 2
 
         session.commit()
 
 
-# adjusts team data from a new map
-def new_game_team(match: Match, result: int, session):
-    """Function to Update the Team table from data in a new Match.
+def new_game_team(match: Match, result: int, session: Session) -> Session:
+    """
+    Function to Update the Team table from data in a new Match.
 
     Parameters
     ----------
@@ -171,12 +177,12 @@ def new_game_team(match: Match, result: int, session):
         The Match object of the new match.
     result : int
         Int showing which team won the match.
-    session"""
+    session : Session
+    """
 
     teams = [match.team_1_ref,
              match.team_2_ref]
 
-    # updates team
     for team in teams:
         specific_team = team
         map_team = session.query(Team).where((Team.tournament == "Overall") &
@@ -193,21 +199,21 @@ def new_game_team(match: Match, result: int, session):
             team_.games += 1
             team_.wins += result
 
-        # swaps result for the other team
         result = (result + 1) % 2
 
     session.commit()
 
 
-# adjusts tournament data from a new map
-def new_game_tournament(match: Match, session):
-    """Function to update the Tournament table with data from a new Match.
+def new_game_tournament(match: Match, session) -> Session:
+    """
+    Function to update the Tournament table with data from a new Match.
 
     Parameters
     ----------
     match : Match
         The Match object for the new Match.
-    session"""
+    session : Session
+    """
 
     ovr = session.query(Tournament).where(Tournament.tournament == "Overall").first()
     ovr.games += 1
@@ -215,7 +221,7 @@ def new_game_tournament(match: Match, session):
     session.commit()
 
 
-def new_game(match: Match, result: int, session):
+def new_game(match: Match, result: int, session: Session) -> Session:
     """Hub Function to update the database based on a new match.
 
     Parameters
@@ -223,7 +229,9 @@ def new_game(match: Match, result: int, session):
     match : Match
         The Match object for the new Match.
     result : int
-        Int showing which team won."""
+        Int showing which team won.
+    session : Session
+    """
 
     new_game_tournament(match, session)
     new_game_map(match, session)

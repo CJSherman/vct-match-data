@@ -1,10 +1,20 @@
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from .databases import Tournament, Match, Referall
 
 
 def copy_data(old_db: str, new_db: str):
+    """
+    Copys a database for backing up purposes.
+
+    Parameters
+    ----------
+    old_db : str
+        Name of the old database.
+    new_db : str
+        Name of the new database.
+    """
     engine_1 = create_engine(f"sqlite:///{old_db}.db", echo=True)
     Session = sessionmaker(bind=engine_1)
     session = Session()
