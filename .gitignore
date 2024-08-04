@@ -4,3 +4,5 @@ vct_data.egg-info
 **/__pycache__
 **.db
 **.pickle
+venv
+build

@@ -127,7 +127,7 @@ class VLRScrape:
                 self._find_map_data(map, tournament)
 
             scanned_matches.append(code)
-            with open("ScannedMatches.txt", "w") as file:
+            with open("ScannedMatches.pickle", "wb") as file:
                 pickle.dump(scanned_matches, file)
             return True
         else:
