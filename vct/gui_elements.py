@@ -1,3 +1,4 @@
+import sys
 import matplotlib
 import threading
 import customtkinter as ctk
@@ -106,7 +107,7 @@ class HomePage(BasePage):
         if self.refreshing.is_alive():
             self.label.set("Can not exit, refreshing in progress")
         else:
-            quit()
+            sys.exit()
 
     def _update(self):
         if not self.refreshing.is_alive():
