@@ -1,6 +1,9 @@
 # vct-match-data
 Project to track match data from VCT LAN tournaments
 
+Text based interaction is available by running the "scripts/run_text.py" file
+GUI Interaction in available by running the "scripts/run_gui.py" file
+
 This program is split into three main sections:
  * Add new data
  * View data
@@ -17,6 +20,8 @@ the abbreviation.
 ## View data
 You can view a print out or plotted data from the database.
 Data comes in 4 forms:
+ * Tournaments (GUI Only)
+   * Games
  * Maps
    * Pickrate
    * Sidedness
@@ -29,11 +34,11 @@ Data comes in 4 forms:
    * Winrate
    * Rating
  * Teams
-   * Matches
-   * Wins
-   * Pickrate (Print Only)
+   * Matches (Text Only)
+   * Wins (Text Only)
+   * Pickrate (Print and GUI Only)
    * Winrate
-   * Rating (Print Only)
+   * Rating (Print and GUI Only)
 
 ## Update data
 Deletes all data from maps, comps, agents and teams tables.
