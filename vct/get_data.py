@@ -3,6 +3,10 @@ from bs4 import BeautifulSoup
 import datetime
 import re
 import copy
+import pickle
+from typing import Optional
+
+from sqlalchemy.orm import Session
 
 from .databases import Match, Tournament, Referall
 from .functions import setup
@@ -18,7 +22,19 @@ class VLRScrape:
         "Connection": "keep-alive"}
     last_scrape = datetime.datetime.now()
 
-    def __init__(self, session, tournament_urls=None, match_urls=None):
+    def __init__(self, session: Session, tournament_urls: Optional[list[str]] = None,
+                 match_urls: Optional[list[str]] = None):
+        """Scraper class for obtaining match data from vlr.gg.
+
+        Parameters
+        ----------
+        session : Session
+            session used to search the database.
+        tournament_urls : Optional[list[str]], default: None
+            List of urls to be scanned.
+        match_urls : Optional[list[str]], default None
+            List of matches to be scanned.
+        """
         if tournament_urls is None:
             tournament_urls = []
         if match_urls is None:
@@ -29,8 +45,12 @@ class VLRScrape:
 
     @property
     def scanned_matches(self):
-        with open("ScannedMatches.txt") as file:
-            matches = file.read().split("\n")
+        try:
+            with open("ScannedMatches.pickle", "rb") as file:
+                matches = pickle.load(file)
+        except FileNotFoundError:
+            with open("ScannedMatches.pickle", "wb"):
+                matches = []
         return matches
 
     @property
@@ -58,16 +78,12 @@ class VLRScrape:
             self.tournament_urls.append(tournaments)
         elif isinstance(tournaments, list):
             self.tournament_urls += tournaments
-        else:
-            raise TypeError
 
     def add_matches(self, matches: list | str):
         if isinstance(matches, str):
             self.match_urls.append(matches)
         elif isinstance(matches, list):
             self.match_urls += matches
-        else:
-            raise TypeError
 
     def find_match_pages(self):
         urls = copy.copy(self.tournament_urls)
@@ -83,8 +99,9 @@ class VLRScrape:
 
         matches = matches_soup.find_all("a", class_="match-item")
         self.match_urls += [self.base + match["href"] for match in matches
-                            if (match.find("div", class_="match-item-event-series").text.split()[0]
-                                != "Showmatch")]
+                            if ((match.find("div", class_="match-item-event-series").text.split()[0]
+                                != "Showmatch") and (match.find("div", class_="ml-status").text
+                                == "Completed"))]
 
     def find_match_data(self):
         urls = copy.copy(self.match_urls)
@@ -111,7 +128,7 @@ class VLRScrape:
 
             scanned_matches.append(code)
             with open("ScannedMatches.txt", "w") as file:
-                file.write("\n".join(scanned_matches))
+                pickle.dump(scanned_matches, file)
             return True
         else:
             print("Match already scanned.")
