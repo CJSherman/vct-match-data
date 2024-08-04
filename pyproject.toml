@@ -1,0 +1,14 @@
+[project]
+name = "vct_data"
+version = "0.0.1"
+authors = [
+  { name="Chris Sherman", email="chris.j.sherman@outlook.co.uk" },
+]
+description = "A package to obtain VCT match data for analysis purposes."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
